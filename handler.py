@@ -8,40 +8,17 @@ except ImportError:
 import urllib.parse as urlparse
 from urllib.parse import parse_qs
 
+from.response import Response, HttpResponse, render
 
-
-class Response:
-    def __init__(self, status_code=200, status_message='OK', headers = {'Content-type':'text/html'}, data=bytes('','UTF-8')):
-        self.status_code        = status_code
-        self.status_message     = status_message
-        self.headers            = headers
-        self.data               = data
-
-
-class HttpResponse(Response):
-    def __init__(self, response_string, status_code=200, status_message='OK', headers = {'Content-type':'text/html'}):
-        super().__init__(status_code=status_code, status_message=status_message, headers = headers, data=bytes(response_string, 'UTF-8'))
-
-
-
-def render(request, file_name, replace=dict(), status_code=200, status_message='OK', headers = {'Content-type':'text/html'}):
-    file_path = os.path.join(request.localserver.TEMPLATE_DIR,file_name)
-
-    if os.path.exists(file_path) and os.path.isfile(file_path):
-        with open(file_path, 'r') as file:
-            content = file.read()
-            for key in replace:
-                content = content.replace(key, replace[key])
-        return HttpResponse(content, status_code=status_code, status_message=status_message, headers = headers)
-    else:
-        ##TODO:
-        if request.localserver.DEBUG:
-            return HttpResponse('<h2 style="color:red">(500) Internal Error: file not found: %s at %s</h2><p>set Server.DEBUG = False to disable this error message </p>'% (file_name, request.localserver.TEMPLATE_DIR), 
-            status_code=500, status_message='InternalError')
-        else:
-            return HttpResponse('<h2>(500) Internal Error</h2>', status_code=500, status_message='InternalError')
-
-
+def _get_404_context(request):
+    ctx = dict()
+    ctx['{{ error_message }}'] = '(404) Page Not Found'
+    ctx['{{ title }}'] = '404 NotFound'
+    paths = ''
+    for path in request.localserver.urlpatterns:
+        paths += '<li>'+ path.url+'</li>'
+    ctx['{{ error_content }}'] = '<p>supported url patterns:<ol>%s<ol></p>'%paths 
+    return ctx
 
 class Handler(SimpleHTTPRequestHandler):
     
@@ -51,6 +28,7 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
 
         if (self.path[-1]!='/'): self.path+='/'
+        request = self.create_request()
         
         for path in Handler.localserver.urlpatterns:
             if path.is_equal(self.path):
@@ -59,7 +37,7 @@ class Handler(SimpleHTTPRequestHandler):
                 url_args    = [] ## TODO: create with urlpatterns
                 for key in query:
                     query[key] = query[key][0]
-                request = self.create_request(GET = query)
+                request.GET = query
 
                 resp = path.handler(request, *url_args)
                 if not isinstance(resp, Response):
@@ -71,12 +49,7 @@ class Handler(SimpleHTTPRequestHandler):
                 break
         else: ## TODO:not found
             if self.localserver.DEBUG:
-                paths = ''
-                for path in self.localserver.urlpatterns:
-                    paths+= '<li>'+ path.url+'</li>'
-
-                resp = HttpResponse('<h2 style="color:red">(404) Page Not Found</h2><p>supported url patterns:<ol>%s<ol></p>'%paths, 
-                status_code=404, status_message='NotFound')
+                resp = render(request, self.localserver.NOTFOUND404_TEMPLATE_PATH, replace=self.localserver.NOTFOUND404_GET_CONTEXT(request), status_code=404, status_message='NotFound')
             else:
                 resp = HttpResponse('<h2>(404) Not Found</h2>', status_code=404, status_message='NotFound')
         

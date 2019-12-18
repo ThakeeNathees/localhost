@@ -1,0 +1,72 @@
+/* The container */
+.radio-container {
+    display: block;
+    position: relative;
+    padding-left: 25px;
+    margin-bottom: 5px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Create a custom radio button */
+.checkmark_none {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 20px;
+    width: 20px;
+    background-color: #eee;
+    border-radius: 50%;
+}
+.checkmark_red {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 20px;
+    width: 20px;
+    background-color: #eee;
+    border-radius: 50%;
+}
+.checkmark_green {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 20px;
+    width: 20px;
+    background-color: #eee;
+    border-radius: 50%;
+}
+.checkmark_yellow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 20px;
+    width: 20px;
+    background-color: #eee;
+    border-radius: 50%;
+}
+/* Hide the browser's default radio button */
+.radio-container input {
+position: absolute;
+opacity: 0;
+cursor: pointer;
+}
+
+
+/* When the radio button is checked, add a background color */
+
+.radio-container .checkmark_none  {
+    background-color: #eee;
+}
+
+.radio-container .checkmark_red  {
+    background-color: rgb(185, 57, 57);
+}
+.radio-container .checkmark_green  {
+    background-color: green;
+}
+.radio-container .checkmark_yellow  {
+    background-color: rgb(170, 184, 48);
+}
