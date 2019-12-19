@@ -4,6 +4,52 @@ IMAGE_FILE_FORMATS = (
     'jpeg', 'jpg', 'png', ## TODO: add more
 )
 
+MEDIA_FILE_FORMAT = {
+    ## format : mime/type , is_binary
+
+
+    ## images
+    'jpg'   : ('image/jpg',  True),
+    'jpeg'  : ('image/jpeg', True),
+    'jfif'  : ('image/jpeg', True),
+    'pjpeg'  : ('image/jpeg', True),
+    'pjp'  : ('image/jpeg', True),
+    'png'   : ('image/png',  True),
+    'gif'   : ('image/gif',  True),
+    'bmp'   : ('image/bmp',  True),
+    'ico'   : ('image/x-icon',  True),
+    'cur'   : ('image/x-icon',  True),
+    'svg'   : ('image/svg+xml',  True),
+    'tif'   : ('image/tiff',  True),
+    'tiff'  : ('image/tiff',  True),
+    'webp'  : ('image/webp',  True),
+
+    
+    ## text files
+    'css'   : ( 'text/css', False ),
+    'js'    : ( 'text/javascripts', False ),
+    'html'  : ( 'text/html', False ),
+    'csv'   : ( 'text/csv    ', False ),
+    'txt'   : ('text/plain', False),
+    'json'  : ('text/json', False),
+
+    ## video
+    'mp4'   : ('video/mp4', True),
+
+    ## audio
+
+
+    ## other binary
+    ## binary documents without a specific or known subtype, application/octet-stream should be used.
+    'pdf'   : ('application/pdf', True),
+    'ttf'   : ('font/ttf', True),
+    'woff'  : ('font/woff', True),
+    'otf'   : ('font/otf', True),
+
+
+
+}
+
 from .errors import _get_404_context
 
 class Response:
@@ -39,8 +85,15 @@ def image_response(request, file_name, status_code=200, status_message='OK'):
                 format_list += '<li>%s<li>'%img_format
             return _error_http500(request, '%s file does not exists or not an image file <br>supported image formats<ul>%s<ul>'% (file_path, format_list ), traceback.format_exc())
 
+def _media_response(request, file_name, static_dir, status_code=200, status_message='OK'):
+    pass
+
 def render(request, file_name, context=dict(), status_code=200, status_message='OK', headers = {'Content-type':'text/html'}):
-    file_path = os.path.join(request.localserver.TEMPLATE_DIR,file_name)
+    return _render(request, file_name, request.localserver.TEMPLATE_DIR, context, status_code, status_message, headers)
+
+## used for local host rendering
+def _render(request, file_name, template_path, context=dict(), status_code=200, status_message='OK', headers = {'Content-type':'text/html'}):
+    file_path = os.path.join(template_path, file_name)
     
     ## validate context keys
     for key in context.keys():
@@ -120,7 +173,8 @@ def render(request, file_name, context=dict(), status_code=200, status_message='
                         return _error_http500(request,  'file %s dosent exists'%request.localserver.BASE_HTML_END_PATH, traceback.format_exc())
 
             #######################################################################################
-
+            if 'title' not in context.keys():
+                context['title'] = 'localhost'
             context.update( request.localserver.LOCALHOST_CTX )
             for key in context:
                 content = re.sub(r'{{\s*%s\s*}}'%key, context[key].replace('\\','/'), content)

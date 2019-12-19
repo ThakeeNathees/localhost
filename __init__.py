@@ -2,7 +2,8 @@ import sys, os
 from http.server import HTTPServer
 
 from .handler import (
-    Handler, _handle_static_url_localhost, _handle_static_url_developer
+    Handler, _handle_static_url_localhost, _handle_static_url_developer,
+    _home_page_handler,
 )
 from .response import (
     HttpResponse, JsonResponse,
@@ -47,14 +48,16 @@ class Server:
         self._handler_class.localserver     = self
         self._server_class                  = server_class 
 
-    def add_static_paths(self): ## urls must ends with /, path is file_path
-        self.urlpatterns+= [
+    def add_default_paths(self): ## urls must ends with /, path is file_path
+        if len(self.urlpatterns) == 0 and self.DEBUG:
+            self.urlpatterns.append( Path('', _home_page_handler ) )
+        self.urlpatterns += [
             Path(self.STATIC_URL, _handle_static_url_developer),
             Path(self.LOCALHOST_STATIC_URL, _handle_static_url_localhost)
         ]
 
     def run(self):
-        self.add_static_paths()
+        self.add_default_paths()
         server_address = ('', self.port)
         httpd = self._server_class(server_address, self._handler_class)
         print('running server at http://localhost:%s/'%self.port)

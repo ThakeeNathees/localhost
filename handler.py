@@ -10,11 +10,40 @@ import urllib.parse as urlparse
 from urllib.parse import parse_qs
 
 from .response import (
-    Response, HttpResponse, render, IMAGE_FILE_FORMATS, 
-    _error_http404, _error_http500
+    Response, HttpResponse, render, MEDIA_FILE_FORMAT,
+    _error_http404, _error_http500, _render
 )
 from .urls import url_as_list
 from .errors import Http404
+
+def _home_page_handler(request):
+    with open( os.path.join(request.localserver.LOCALHOST_STATIC_DIR, 'html/ghost_image'), 'r') as img:
+        ghost_image = img.read()
+    return _render(request, 'localhost-home.html', request.localserver.LOCALHOST_TEMPLATE_DIR, context={
+        'ghost_image' : ghost_image
+    })
+
+def __static_handler(request, static_dir):
+    file_path = os.path.join(static_dir,  '/'.join(url_as_list(request.path)[1:]  ) ) ## '/static/image.jpg/ -> [  static, image.jpg ]
+    
+    
+    file_format = file_path.split('.')[-1].lower().replace('/', '') ## path/to/media.format/
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        if  file_format in MEDIA_FILE_FORMAT.keys():
+            mime_type, binary = MEDIA_FILE_FORMAT[file_format]
+            read_mode = 'rb' if binary else 'r'
+            with open(file_path, read_mode) as file:
+                content = file.read()
+                if binary:
+                    return Response( headers = { 'Content-type': mime_type }, data=content)
+                else:
+                    return HttpResponse(content, headers= { 'Content-type': mime_type })
+        else:
+            raise Http404("unknown file type in static : %s"%file_path)
+    else:
+        raise Http404()
+
+'''
 
 def __static_handler(request, static_dir):
     file_path = os.path.join(static_dir,  '/'.join(url_as_list(request.path)[1:]  ) ) ## '/static/image.jpg/ -> [  static, image.jpg ]
@@ -34,6 +63,8 @@ def __static_handler(request, static_dir):
             else: raise Exception("InternalError: unknown file type in static : %s"%file_path)
     else:
         raise Http404()
+
+'''
 
 def _handle_static_url_localhost(request):
     return __static_handler(request, request.localserver.LOCALHOST_STATIC_DIR)
