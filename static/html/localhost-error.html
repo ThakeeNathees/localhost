@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" type="text/css" href="{{ _static_url }}css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="{{ _static_url }}css/main.css">
+
+
+    <title>{{ title }}</title>
+    
+</head>
+<body>
+  <header class="site-header">
+    <nav class="navbar navbar-expand-md navbar-dark bg-steel fixed-top">
+      
+      <div class="container">
+        <a class="navbar-brand mr-4" href=""> {{ title }} </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="navbarToggle" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+      </div>
+
+    </nav>
+  </header>
+<!-- ------------------------------------------- -->
+
+<div class="container">
+  
+  <div class="alert alert-danger" role="alert">
+    <h4 class="alert-heading">{{ error_message }}</h4>
+    <hr>
+    <p class="mb-0">{{ error_content }}</p>
+    <p class="mb-0 text-muted">set Server.DEBUG = False to for standard error view</p>
+    
+  </div>
+	
+</div>
+
+<!-- ------------------------------ ---------------------------  -->
+      
+     
+    <script src="{{ _static_url }}js/jquery-3.2.1.slim.min.js"></script>
+    <script src="{{ _static_url }}js/popper.min.js"></script>
+    <script src="{{ _static_url }}js/bootstrap.min.js"></script>
+
+
+
+</body>
+</html>
