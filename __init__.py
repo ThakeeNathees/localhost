@@ -7,8 +7,8 @@ from .handler import (
 from .response import (
     HttpResponse, JsonResponse,
     render, image_response, 
-    _get_404_context, 
 )
+from .errors import _get_404_context
 from .urls import Path
 
 __all__ = [
@@ -47,19 +47,14 @@ class Server:
         self._handler_class.localserver     = self
         self._server_class                  = server_class 
 
-    def add_static_paths(self, path, url, func): ## urls must ends with /, path is file_path
-        for file in os.listdir(path):
-            if not os.path.isdir(os.path.join(path, file)):
-                self.urlpatterns.append(
-                    Path(url+file, func)
-                )
-            else:
-                self.add_static_paths( os.path.join(path, file) , url+file+'/', func)
-                
+    def add_static_paths(self): ## urls must ends with /, path is file_path
+        self.urlpatterns+= [
+            Path(self.STATIC_URL, _handle_static_url_developer),
+            Path(self.LOCALHOST_STATIC_URL, _handle_static_url_localhost)
+        ]
 
     def run(self):
-        self.add_static_paths(self.LOCALHOST_STATIC_DIR, self.LOCALHOST_STATIC_URL, _handle_static_url_localhost )
-        self.add_static_paths(self.STATIC_DIR, self.STATIC_URL, _handle_static_url_developer)
+        self.add_static_paths()
         server_address = ('', self.port)
         httpd = self._server_class(server_address, self._handler_class)
         print('running server at http://localhost:%s/'%self.port)

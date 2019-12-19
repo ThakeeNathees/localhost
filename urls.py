@@ -9,7 +9,7 @@ class Path:
     def __init__(self, url, handler, name=''):
         if '//' in url :
             raise Exception('Error: %s is not a valid url', url)
-        #if (url[-1]!='/'):  url +='/'
+        if url == '' : url = '/'
         if (url[0] != '/'): url = '/'+url
         if not hasattr(handler, '__call__'):
             raise Exception('Error: %s is not callable', handler)
@@ -18,8 +18,19 @@ class Path:
         self.handler    = handler
         self.name       = name
 
-    def compare(self, url): ## /some/path = /some/path/
+    def compare(self, url, request): ## /some/path = /some/path/
+
         args = []
+        
+        ## for static paths
+        url_list = url_as_list(url) 
+        if len(url_list) > 0:
+            if url_list[0] == url_as_list(request.localserver.LOCALHOST_STATIC_URL)[0] and self.url == request.localserver.LOCALHOST_STATIC_URL:
+                return True, args
+            if url_list[0] == url_as_list(request.localserver.STATIC_URL)[0] and self.url == request.localserver.STATIC_URL:
+                return True, args
+                
+
         if self.url == url :
             return True, args
         if len(url_as_list(self.url)) != len(url_as_list(url)):

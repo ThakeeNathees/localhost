@@ -1,21 +1,10 @@
-import os, re
+import os, re, traceback
 
 IMAGE_FILE_FORMATS = (
     'jpeg', 'jpg', 'png', ## TODO: add more
 )
 
-def _get_404_context(request):
-    ctx = dict()
-    ctx['error_message'] = '(404) Page Not Found'
-    ctx['title'] = '404 NotFound'
-    paths = ''
-    for path in request.localserver.urlpatterns:
-        if not path.url.startswith( request.localserver.STATIC_URL ) and not path.url.startswith( request.localserver.LOCALHOST_STATIC_URL ) : ## url = '/static/'
-            paths += '<li>'+ path.url.replace('<', '&lt;').replace('>', '&gt;')  +'</li>'
-    paths += '<li>'+ request.localserver.STATIC_URL +'&lt;file_path&gt;</li>'
-    ctx['error_content'] = '<p>supported url patterns:<ol>%s<ol></p>'%paths 
-    return ctx
-
+from .errors import _get_404_context
 
 class Response:
     def __init__(self, status_code=200, status_message='OK', headers = {'Content-type':'text/html'}, data=bytes('','UTF-8'), is_redirect=False):
@@ -42,32 +31,24 @@ def image_response(request, file_name, status_code=200, status_message='OK'):
             content = file.read()
         return Response(status_code=200, status_message='OK', headers = {'Content-type':'image/%s'%file_name.split('.')[-1].lower()}, data=content)
     else:
-        if request.localserver.DEBUG:
+        try:
+            raise Exception('%s file does not exists or not an image file'% file_path)
+        except:
             format_list = ''
             for img_format in IMAGE_FILE_FORMATS:
                 format_list += '<li>%s<li>'%img_format
-            return render(request, request.localserver._ERROR_TEMPLATE_PATH, context={
-                    'title':'500 InternalError',
-                    'error_message' : '(500) InternalError',
-                    'error_content' : '%s file does not exists or not an image file <br>supported image formats<ul>%s<ul>'% (file_path, format_list ),
-                }, status_code=500, status_message='InternalError')
-        else:
-            return HttpResponse('<h2>(500) Internal Error</h2>', status_code=500, status_message='InternalError')
+            return _error_http500(request, '%s file does not exists or not an image file <br>supported image formats<ul>%s<ul>'% (file_path, format_list ), traceback.format_exc())
 
 def render(request, file_name, context=dict(), status_code=200, status_message='OK', headers = {'Content-type':'text/html'}):
     file_path = os.path.join(request.localserver.TEMPLATE_DIR,file_name)
-
+    
     ## validate context keys
     for key in context.keys():
         if re.match('^[A-Za-z_][A-Za-z_0-9]*$', key) is None:
-            if request.localserver.DEBUG:
-                return render(request, request.localserver._ERROR_TEMPLATE_PATH, context={
-                        'title':'500 InternalError',
-                        'error_message' : '(500) InternalError',
-                        'error_content' : 'invalid key name for render context : "%s"'%key,
-                    }, status_code=500, status_message='InternalError')
-            else:
-                return HttpResponse('<h2>(500) Internal Error</h2>', status_code=500, status_message='InternalError')
+            try:
+                raise Exception('invalid key name for render context : "%s"'%key)
+            except:
+                return _error_http500(request, 'invalid key name for render context : "%s"'%key,traceback.format_exc())
 
     if os.path.exists(file_path) and os.path.isfile(file_path):
         with open(file_path, 'r') as file:
@@ -78,52 +59,36 @@ def render(request, file_name, context=dict(), status_code=200, status_message='
             count_begin  = len( re.findall(reg_ex_begin, content) )
             count_end    = len( re.findall(reg_ex_end, content) )
             if count_begin >=2 or count_end >=2 : ## more than one extends
-                if request.localserver.DEBUG:
+                if re.match('^[A-Za-z_][A-Za-z_0-9]*$', key) is None:
                     which = '{{ html_base_begin }}' if count_begin >=2 else '{{ html_base_end }}'
-                    return render(request, request.localserver._ERROR_TEMPLATE_PATH, context={
-                            'title':'500 InternalError',
-                            'error_message' : '(500) InternalError',
-                            'error_content' : 'more than one %s found'%which,
-                        }, status_code=500, status_message='InternalError')
-                else:
-                    return HttpResponse('<h2>(500) Internal Error</h2>', status_code=500, status_message='InternalError')
+                    try:
+                        raise Exception('more than one %s found'%which)
+                    except:
+                        return _error_http500(request, 'more than one %s found'%which, traceback.format_exc())
             
             if count_begin ^ count_end != 0 :
-                if request.localserver.DEBUG:
-                    which = '{{ html_base_begin }}' if count_begin >=2 else '{{ html_base_end }}'
-                    return render(request, request.localserver._ERROR_TEMPLATE_PATH, context={
-                            'title':'500 InternalError',
-                            'error_message' : '(500) InternalError',
-                            'error_content' : '{{ html_base_begin }} and {{ html_base_end }} are mismatch',
-                        }, status_code=500, status_message='InternalError')
-                else:
-                    return HttpResponse('<h2>(500) Internal Error</h2>', status_code=500, status_message='InternalError')
-            
+                try:
+                    raise Exception( '{{ html_base_begin }} and {{ html_base_end }} are mismatch')
+                except:
+                    return _error_http500(request, '{{ html_base_begin }} and {{ html_base_end }} are mismatch', traceback.format_exc())
+                    
             html_base_begin = re.search( reg_ex_begin, content)
             html_base_end   = re.search( reg_ex_end, content)
 
             if count_begin == 1:
 
                 if (len(content) - len(content.lstrip())) != html_base_begin.start():
-                        if request.localserver.DEBUG:
-                            return render(request, request.localserver._ERROR_TEMPLATE_PATH, context={
-                                    'title':'500 InternalError',
-                                    'error_message' : '(500) InternalError',
-                                    'error_content' : '{{ html_base_begin }} must be the at the begining of the file',
-                                }, status_code=500, status_message='InternalError')
-                        else:
-                            return HttpResponse('<h2>(500) Internal Error</h2>', status_code=500, status_message='InternalError')
+                    try:
+                        raise Exception( '{{ html_base_begin }} must be the at the begining of the file'  )
+                    except:
+                        return _error_http500(request,'{{ html_base_begin }} must be the at the begining of the file', traceback.format_exc())
                 
                 if (len(content.rstrip())) != html_base_end.end():
-                        if request.localserver.DEBUG:
-                            return render(request, request.localserver._ERROR_TEMPLATE_PATH, context={
-                                    'title':'500 InternalError',
-                                    'error_message' : '(500) InternalError',
-                                    'error_content' : '{{ html_base_end }} must be the at the end of the file',
-                                }, status_code=500, status_message='InternalError')
-                        else:
-                            return HttpResponse('<h2>(500) Internal Error</h2>', status_code=500, status_message='InternalError')
-                
+                    try:
+                        raise Exception( '{{ html_base_end }} must be the at the end of the file'  )
+                    except:
+                        return _error_http500(request,  '{{ html_base_end }} must be the at the end of the file', traceback.format_exc())
+
                 ## replace begin
                 developer_begin_template_path = os.path.join(request.localserver.TEMPLATE_DIR, request.localserver.BASE_HTML_BEGIN_PATH)
                 localhost_begin_template_path = os.path.join(request.localserver.LOCALHOST_TEMPLATE_DIR, request.localserver.BASE_HTML_BEGIN_PATH)
@@ -134,15 +99,11 @@ def render(request, file_name, context=dict(), status_code=200, status_message='
                     with open(localhost_begin_template_path, 'r') as file:
                         content = re.sub(reg_ex_begin, file.read(), content)
                 else:
-                    if request.localserver.DEBUG:
-                        return render(request, request.localserver._ERROR_TEMPLATE_PATH, context={
-                                'title':'500 InternalError',
-                                'error_message' : '(500) InternalError',
-                                'error_content' : 'file %s dosent exists'%request.localserver.BASE_HTML_BEGIN_PATH,
-                            }, status_code=500, status_message='InternalError')
-                    else:
-                        return HttpResponse('<h2>(500) Internal Error</h2>', status_code=500, status_message='InternalError')
-                
+                    try:
+                        raise Exception( 'file %s dosent exists'%request.localserver.BASE_HTML_BEGIN_PATH  )
+                    except:
+                        return _error_http500(request,  'file %s dosent exists'%request.localserver.BASE_HTML_BEGIN_PATH, traceback.format_exc())
+
                 ## replace end
                 developer_end_template_path = os.path.join(request.localserver.TEMPLATE_DIR, request.localserver.BASE_HTML_END_PATH)
                 localhost_end_template_path = os.path.join(request.localserver.LOCALHOST_TEMPLATE_DIR, request.localserver.BASE_HTML_END_PATH)
@@ -153,32 +114,22 @@ def render(request, file_name, context=dict(), status_code=200, status_message='
                     with open(localhost_end_template_path, 'r') as file:
                         content = re.sub(reg_ex_end, file.read(), content)
                 else:
-                    if request.localserver.DEBUG:
-                        return render(request, request.localserver._ERROR_TEMPLATE_PATH, context={
-                                'title':'500 InternalError',
-                                'error_message' : '(500) InternalError',
-                                'error_content' : 'file %s dosent exists'%request.localserver.BASE_HTML_END_PATH,
-                            }, status_code=500, status_message='InternalError')
-                    else:
-                        return HttpResponse('<h2>(500) Internal Error</h2>', status_code=500, status_message='InternalError')
+                    try:
+                        raise Exception( 'file %s dosent exists'%request.localserver.BASE_HTML_END_PATH )
+                    except:
+                        return _error_http500(request,  'file %s dosent exists'%request.localserver.BASE_HTML_END_PATH, traceback.format_exc())
 
             #######################################################################################
 
             context.update( request.localserver.LOCALHOST_CTX )
             for key in context:
-                if (key == 'error_content'): print(context[key])
                 content = re.sub(r'{{\s*%s\s*}}'%key, context[key].replace('\\','/'), content)
         return HttpResponse(content, status_code=status_code, status_message=status_message, headers = headers)
     else:
-        ##TODO:
-        if request.localserver.DEBUG:
-            return render(request, request.localserver._ERROR_TEMPLATE_PATH, context={
-                    'title':'500 InternalError',
-                    'error_message' : '(500) InternalError',
-                    'error_content' : '%s file does not exists'% file_path, ##
-                }, status_code=500, status_message='InternalError')
-        else:
-            return HttpResponse('<h2>(500) Internal Error</h2>', status_code=500, status_message='InternalError')
+        try:
+            raise Exception( '%s file does not exists'% file_path )
+        except:
+            return _error_http500(request, '%s file does not exists'% file_path, traceback.format_exc())
 
 import sys
 try:
@@ -191,14 +142,10 @@ except ImportError:
 
 def redirect(request, name_or_path, status_code=307, status_message='REDIRECT',):
     if not isinstance(request, SimpleHTTPRequestHandler): ## instance of Handler
-        if request.localserver.DEBUG:
-            return render(request, request.localserver._ERROR_TEMPLATE_PATH, context={
-                    'title':'500 InternalError',
-                    'error_message' : '(500) InternalError',
-                    'error_content' : 'first argument of redirect must me request',
-                }, status_code=500, status_message='InternalError')
-        else:
-            return HttpResponse('<h2>(500) Internal Error</h2>', status_code=500, status_message='InternalError')
+        try:
+            raise Exception( 'first argument of redirect must me request' )
+        except:
+            return _error_http500(request, 'first argument of redirect must me request', traceback.format_exc())
     
     paths = request.localserver.urlpatterns
     for path in paths:
@@ -208,13 +155,26 @@ def redirect(request, name_or_path, status_code=307, status_message='REDIRECT',)
                     'Location': path.url
                 }, is_redirect=True
             )
+    try:
+        raise Exception( '%s is an invalid redirect name of path'%name_or_path )
+    except:
+        return _error_http500(request, '%s is an invalid redirect name of path'%name_or_path, traceback.format_exc())
+
+
+############### errors #############################
+
+def _error_http404(request):
     if request.localserver.DEBUG:
-            return render(request, request.localserver._ERROR_TEMPLATE_PATH, context={
-                    'title':'500 InternalError',
-                    'error_message' : '(500) InternalError',
-                    'error_content' : '%s is an invalid redirect name of path'%name_or_path,
-                }, status_code=500, status_message='InternalError')
+        return render(request, request.localserver.NOTFOUND404_TEMPLATE_PATH, context=request.localserver.NOTFOUND404_GET_CONTEXT(request), status_code=404, status_message='NotFound')
+    else:
+        return HttpResponse('<h2>(404) Not Found</h2>', status_code=404, status_message='NotFound')
+    
+def _error_http500(request, error_message, stack_trace=''):
+    if request.localserver.DEBUG:
+        return render(request, request.localserver._ERROR_TEMPLATE_PATH, context={
+            'title':'500 InternalError',
+            'error_message' : '(500) InternalError',
+            'error_content' : error_message+'<br>%s' % stack_trace.replace('\n','<br>')
+        }, status_code=500, status_message='InternalError')
     else:
         return HttpResponse('<h2>(500) Internal Error</h2>', status_code=500, status_message='InternalError')
-            
-    
