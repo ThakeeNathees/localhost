@@ -2,40 +2,46 @@ import sys, os
 from http.server import HTTPServer
 
 from .handler import (
-    Handler, _handle_static_url_localhost, _handle_static_url_developer,
-    _home_page_handler,
+    Handler, _home_page_handler,
 )
 from .response import (
-    HttpResponse, JsonResponse,
-    render, image_response, 
+    HttpResponse, JsonResponse, Http404,
+    render, _get_404_context, redirect, media_response,
+    _handle_static_url_localhost, _handle_static_url_developer,
+    _handle_admin_page,
 )
-from .errors import _get_404_context
 from .urls import Path
+from . import utils
 
 __all__ = [
-    'Server', 'Path', 'HttpResponse', 'JsonResponse', 'render', 'image_response', 
+    'Server', 'Path', 'HttpResponse', 'JsonResponse', 'Http404',
+    'render', 'redirect', 'media_response',
 ]
 
+try:
+    import settings
+except ImportError:
+    utils.create_settings_file()
+    import settings
+    
 
 class Server:
 
-    def __init__(self, BASE_DIR, port=8000, server_class=HTTPServer):
-        
-        self.DEBUG                  = True
-        self.BASE_DIR               = BASE_DIR
-        self.TEMPLATE_DIR           = os.path.join(self.BASE_DIR, 'templates')
-        self.STATIC_DIR             = os.path.join(self.BASE_DIR, 'static')
-        self.STATIC_URL             = '/static/'
+    def __init__(self, port=8000, server_class=HTTPServer):
+        utils._type_check(
+            (port, int)
+        )
 
         self.port                   = port
         self.urlpatterns            = []
         
         self.LOCALHOST_STATIC_DIR    = os.path.join(os.path.dirname(__file__), 'static')  ## private static dir,
         self.LOCALHOST_STATIC_URL    = '/_static/'
+        self.LOCALHOST_ADMIN_URL     = '/admin/'
         self.LOCALHOST_TEMPLATE_DIR  = os.path.join(self.LOCALHOST_STATIC_DIR, 'html')
         self.LOCALHOST_CTX           = {
             '_static_url'     : self.LOCALHOST_STATIC_URL,
-            'static_url'      : self.STATIC_URL,
+            'static_url'      : settings.STATIC_URL,
             ## in response.py html_base_begin, html_base_end
         }
         self._ERROR_TEMPLATE_PATH          = os.path.join(self.LOCALHOST_STATIC_DIR, 'html/localhost-error.html')
@@ -49,11 +55,13 @@ class Server:
         self._server_class                  = server_class 
 
     def add_default_paths(self): ## urls must ends with /, path is file_path
-        if len(self.urlpatterns) == 0 and self.DEBUG:
+        if len(self.urlpatterns) == 0 and settings.DEBUG:
             self.urlpatterns.append( Path('', _home_page_handler ) )
+        ## TODO: developer has to add admin page    
         self.urlpatterns += [
-            Path(self.STATIC_URL, _handle_static_url_developer),
-            Path(self.LOCALHOST_STATIC_URL, _handle_static_url_localhost)
+            Path(settings.STATIC_URL, _handle_static_url_developer),
+            Path(self.LOCALHOST_STATIC_URL, _handle_static_url_localhost),
+            Path(self.LOCALHOST_ADMIN_URL, _handle_admin_page),
         ]
 
     def run(self):
@@ -62,5 +70,3 @@ class Server:
         httpd = self._server_class(server_address, self._handler_class)
         print('running server at http://localhost:%s/'%self.port)
         httpd.serve_forever()
-
-

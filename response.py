@@ -1,37 +1,42 @@
 import os, re, traceback
 
-IMAGE_FILE_FORMATS = (
-    'jpeg', 'jpg', 'png', ## TODO: add more
-)
+from array import array
+from .urls import _url_as_list
+
+from . import utils
+
+try:
+    import settings
+except ImportError:
+    utils.create_settings_file()
+    import settings
 
 MEDIA_FILE_FORMAT = {
     ## format : mime/type , is_binary
 
-
     ## images
-    'jpg'   : ('image/jpg',  True),
-    'jpeg'  : ('image/jpeg', True),
-    'jfif'  : ('image/jpeg', True),
-    'pjpeg'  : ('image/jpeg', True),
-    'pjp'  : ('image/jpeg', True),
-    'png'   : ('image/png',  True),
-    'gif'   : ('image/gif',  True),
-    'bmp'   : ('image/bmp',  True),
+    'jpg'   : ('image/jpg',     True),
+    'jpeg'  : ('image/jpeg',    True),
+    'jfif'  : ('image/jpeg',    True),
+    'pjpeg'  : ('image/jpeg',   True),
+    'pjp'  : ('image/jpeg',     True),
+    'png'   : ('image/png',     True),
+    'gif'   : ('image/gif',     True),
+    'bmp'   : ('image/bmp',     True),
     'ico'   : ('image/x-icon',  True),
     'cur'   : ('image/x-icon',  True),
-    'svg'   : ('image/svg+xml',  True),
-    'tif'   : ('image/tiff',  True),
-    'tiff'  : ('image/tiff',  True),
-    'webp'  : ('image/webp',  True),
-
+    'svg'   : ('image/svg+xml', True),
+    'tif'   : ('image/tiff',    True),
+    'tiff'  : ('image/tiff',    True),
+    'webp'  : ('image/webp',    True),
     
     ## text files
-    'css'   : ( 'text/css', False ),
+    'css'   : ( 'text/css',         False ),
     'js'    : ( 'text/javascripts', False ),
-    'html'  : ( 'text/html', False ),
-    'csv'   : ( 'text/csv    ', False ),
-    'txt'   : ('text/plain', False),
-    'json'  : ('text/json', False),
+    'html'  : ( 'text/html',        False ),
+    'csv'   : ( 'text/csv',         False ),
+    'txt'   : ('text/plain',        False),
+    'json'  : ('text/json',         False),
 
     ## video
     'mp4'   : ('video/mp4', True),
@@ -41,16 +46,58 @@ MEDIA_FILE_FORMAT = {
 
     ## other binary
     ## binary documents without a specific or known subtype, application/octet-stream should be used.
-    'pdf'   : ('application/pdf', True),
-    'ttf'   : ('font/ttf', True),
-    'woff'  : ('font/woff', True),
-    'otf'   : ('font/otf', True),
-
-
+    'pdf'   : ('application/pdf',   True),
+    'ttf'   : ('font/ttf',          True),
+    'woff'  : ('font/woff',         True),
+    'otf'   : ('font/otf',          True),
 
 }
 
-from .errors import _get_404_context
+class Http404(Exception):
+    pass
+
+
+def _get_404_context(request):
+    ctx = dict()
+    ctx['error_message'] = '(404) Page Not Found'
+    ctx['title'] = '404 NotFound'
+    paths = ''
+    for path in request.localserver.urlpatterns:
+        if not path.url.startswith( settings.STATIC_URL ) and not path.url.startswith( request.localserver.LOCALHOST_STATIC_URL ) : ## url = '/static/'
+            paths += '<li>'+ path.url.replace('<', '&lt;').replace('>', '&gt;')  +'</li>'
+    paths += '<li>'+ settings.STATIC_URL +'&lt;file_path&gt;</li>'
+    ctx['error_content'] = '<p>supported url patterns:<ol>%s<ol></p>'%paths 
+    return ctx
+
+
+def _static_handler(request, static_dir, status_code=200, status_message='OK'):
+    file_path = os.path.join(static_dir,  '/'.join(_url_as_list(request.path)[1:]  ) ) ## '/static/image.jpg/ -> [  static, image.jpg ]
+    
+    
+    file_format = file_path.split('.')[-1].lower().replace('/', '') ## path/to/media.format/
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        if  file_format in MEDIA_FILE_FORMAT.keys():
+            mime_type, binary = MEDIA_FILE_FORMAT[file_format]
+            read_mode = 'rb' if binary else 'r'
+            with open(file_path, read_mode) as file:
+                content = file.read()
+                if binary:
+                    return Response( headers = { 'Content-type': mime_type }, data=content, status_code=status_code, status_message=status_message)
+                else:
+                    return HttpResponse(content, headers= { 'Content-type': mime_type }, status_code=status_code, status_message=status_message)
+        else:
+            raise Http404("unknown file type in static : %s"%file_path)
+    else:
+        raise Http404()
+
+
+def _handle_static_url_localhost(request):
+    return _static_handler(request, request.localserver.LOCALHOST_STATIC_DIR)
+def _handle_static_url_developer(request):
+    return _static_handler(request, settings.STATIC_DIR)
+
+def _handle_admin_page(request):
+    return _render(request, 'localhost-admin.html', request.localserver.LOCALHOST_TEMPLATE_DIR, context={'title':'admin'})
 
 class Response:
     def __init__(self, status_code=200, status_message='OK', headers = {'Content-type':'text/html'}, data=bytes('','UTF-8'), is_redirect=False):
@@ -63,33 +110,34 @@ class Response:
 
 class HttpResponse(Response):
     def __init__(self, response_string, status_code=200, status_message='OK', headers = {'Content-type':'text/html'}, is_redirect=False):
+        utils._type_check(
+            (response_string, str), (is_redirect, bool),
+            (status_code, int),  (status_message, str), (headers, dict)
+        )
         super().__init__(status_code=status_code, status_message=status_message, headers = headers, data=bytes(response_string, 'UTF-8'), is_redirect=False)
 
 class JsonResponse(Response):
         def __init__(self, response_string, status_code=200, status_message='OK', headers = {'Content-type':'application/json'}, is_redirect=False):
+            utils._type_check(
+                (response_string, str), (is_redirect, bool),
+                (status_code, int),  (status_message, str), (headers, dict)
+            )
             super().__init__(status_code=status_code, status_message=status_message, headers = headers, data=bytes(response_string, 'UTF-8'), is_redirect=False)
 
-def image_response(request, file_name, status_code=200, status_message='OK'):
-    file_path = os.path.join(request.localserver.STATIC_DIR, file_name)
+## TODO: static dir -> media dir
+def media_response(request, file_name, status_code=200, status_message='OK'):
+    utils._type_check(
+        (request, 'Handler'), (file_name, str), 
+        (status_code, int),  (status_message, str),
+    )
+    return _static_handler(request, settings.STATIC_DIR, status_code, status_message)
 
-    if os.path.exists(file_path) and os.path.isfile(file_path) and file_name.split('.')[-1].lower() in IMAGE_FILE_FORMATS :
-        with open(file_path, 'rb') as file:
-            content = file.read()
-        return Response(status_code=200, status_message='OK', headers = {'Content-type':'image/%s'%file_name.split('.')[-1].lower()}, data=content)
-    else:
-        try:
-            raise Exception('%s file does not exists or not an image file'% file_path)
-        except:
-            format_list = ''
-            for img_format in IMAGE_FILE_FORMATS:
-                format_list += '<li>%s<li>'%img_format
-            return _error_http500(request, '%s file does not exists or not an image file <br>supported image formats<ul>%s<ul>'% (file_path, format_list ), traceback.format_exc())
-
-def _media_response(request, file_name, static_dir, status_code=200, status_message='OK'):
-    pass
-
-def render(request, file_name, context=dict(), status_code=200, status_message='OK', headers = {'Content-type':'text/html'}):
-    return _render(request, file_name, request.localserver.TEMPLATE_DIR, context, status_code, status_message, headers)
+def render(request, file_name, ctx=dict(), status_code=200, status_message='OK', headers = {'Content-type':'text/html'}):
+    utils._type_check(
+        (request, 'Handler'), (file_name, str), (ctx, dict),
+        (status_code, int),  (status_message, str), (headers, dict)
+    )
+    return _render(request, file_name, settings.TEMPLATE_DIR, ctx, status_code, status_message, headers)
 
 ## used for local host rendering
 def _render(request, file_name, template_path, context=dict(), status_code=200, status_message='OK', headers = {'Content-type':'text/html'}):
@@ -98,10 +146,7 @@ def _render(request, file_name, template_path, context=dict(), status_code=200, 
     ## validate context keys
     for key in context.keys():
         if re.match('^[A-Za-z_][A-Za-z_0-9]*$', key) is None:
-            try:
-                raise Exception('invalid key name for render context : "%s"'%key)
-            except:
-                return _error_http500(request, 'invalid key name for render context : "%s"'%key,traceback.format_exc())
+            raise Exception('invalid key name for render context : "%s"'%key)
 
     if os.path.exists(file_path) and os.path.isfile(file_path):
         with open(file_path, 'r') as file:
@@ -114,16 +159,10 @@ def _render(request, file_name, template_path, context=dict(), status_code=200, 
             if count_begin >=2 or count_end >=2 : ## more than one extends
                 if re.match('^[A-Za-z_][A-Za-z_0-9]*$', key) is None:
                     which = '{{ html_base_begin }}' if count_begin >=2 else '{{ html_base_end }}'
-                    try:
-                        raise Exception('more than one %s found'%which)
-                    except:
-                        return _error_http500(request, 'more than one %s found'%which, traceback.format_exc())
+                    raise Exception('more than one %s found'%which)
             
             if count_begin ^ count_end != 0 :
-                try:
-                    raise Exception( '{{ html_base_begin }} and {{ html_base_end }} are mismatch')
-                except:
-                    return _error_http500(request, '{{ html_base_begin }} and {{ html_base_end }} are mismatch', traceback.format_exc())
+                raise Exception( '{{ html_base_begin }} and {{ html_base_end }} are mismatch')
                     
             html_base_begin = re.search( reg_ex_begin, content)
             html_base_end   = re.search( reg_ex_end, content)
@@ -131,19 +170,14 @@ def _render(request, file_name, template_path, context=dict(), status_code=200, 
             if count_begin == 1:
 
                 if (len(content) - len(content.lstrip())) != html_base_begin.start():
-                    try:
-                        raise Exception( '{{ html_base_begin }} must be the at the begining of the file'  )
-                    except:
-                        return _error_http500(request,'{{ html_base_begin }} must be the at the begining of the file', traceback.format_exc())
+                    raise Exception( '{{ html_base_begin }} must be the at the begining of the file'  )
                 
                 if (len(content.rstrip())) != html_base_end.end():
-                    try:
-                        raise Exception( '{{ html_base_end }} must be the at the end of the file'  )
-                    except:
-                        return _error_http500(request,  '{{ html_base_end }} must be the at the end of the file', traceback.format_exc())
+                    raise Exception( '{{ html_base_end }} must be the at the end of the file'  )
+
 
                 ## replace begin
-                developer_begin_template_path = os.path.join(request.localserver.TEMPLATE_DIR, request.localserver.BASE_HTML_BEGIN_PATH)
+                developer_begin_template_path = os.path.join(settings.TEMPLATE_DIR, request.localserver.BASE_HTML_BEGIN_PATH)
                 localhost_begin_template_path = os.path.join(request.localserver.LOCALHOST_TEMPLATE_DIR, request.localserver.BASE_HTML_BEGIN_PATH)
                 if os.path.exists(developer_begin_template_path) and os.path.isfile(developer_begin_template_path):
                     with open(developer_begin_template_path, 'r') as file:
@@ -152,13 +186,11 @@ def _render(request, file_name, template_path, context=dict(), status_code=200, 
                     with open(localhost_begin_template_path, 'r') as file:
                         content = re.sub(reg_ex_begin, file.read(), content)
                 else:
-                    try:
-                        raise Exception( 'file %s dosent exists'%request.localserver.BASE_HTML_BEGIN_PATH  )
-                    except:
-                        return _error_http500(request,  'file %s dosent exists'%request.localserver.BASE_HTML_BEGIN_PATH, traceback.format_exc())
+                    raise Exception( 'file %s dosent exists'%request.localserver.BASE_HTML_BEGIN_PATH  )
+
 
                 ## replace end
-                developer_end_template_path = os.path.join(request.localserver.TEMPLATE_DIR, request.localserver.BASE_HTML_END_PATH)
+                developer_end_template_path = os.path.join(settings.TEMPLATE_DIR, request.localserver.BASE_HTML_END_PATH)
                 localhost_end_template_path = os.path.join(request.localserver.LOCALHOST_TEMPLATE_DIR, request.localserver.BASE_HTML_END_PATH)
                 if os.path.exists(developer_end_template_path) and os.path.isfile(developer_end_template_path):
                     with open(developer_end_template_path, 'r') as file:
@@ -167,10 +199,8 @@ def _render(request, file_name, template_path, context=dict(), status_code=200, 
                     with open(localhost_end_template_path, 'r') as file:
                         content = re.sub(reg_ex_end, file.read(), content)
                 else:
-                    try:
-                        raise Exception( 'file %s dosent exists'%request.localserver.BASE_HTML_END_PATH )
-                    except:
-                        return _error_http500(request,  'file %s dosent exists'%request.localserver.BASE_HTML_END_PATH, traceback.format_exc())
+                    raise Exception( 'file %s dosent exists'%request.localserver.BASE_HTML_END_PATH )
+
 
             #######################################################################################
             if 'title' not in context.keys():
@@ -180,10 +210,8 @@ def _render(request, file_name, template_path, context=dict(), status_code=200, 
                 content = re.sub(r'{{\s*%s\s*}}'%key, context[key].replace('\\','/'), content)
         return HttpResponse(content, status_code=status_code, status_message=status_message, headers = headers)
     else:
-        try:
-            raise Exception( '%s file does not exists'% file_path )
-        except:
-            return _error_http500(request, '%s file does not exists'% file_path, traceback.format_exc())
+        raise Exception( '%s file does not exists'% file_path )
+
 
 import sys
 try:
@@ -192,43 +220,50 @@ except ImportError:
     print('Error: localhost only supprts for python3')
     sys.exit(1)
 
+def reverse(request, name, *args):
+    utils._type_check(
+        (request, 'Handler'), (name, str)
+    )
+    for path in request.localserver.paths:
+        if path.name == name:
+            url = path.url
+            for arg in args:
+                url = re.sub(r'/<\s*[A-Za-z_][A-Za-z_0-9]*\s*>/', arg, url)
+            return path.url
+    raise Exception( '%s is an invalid redirect name to reverse'%name )
 
-
-def redirect(request, name_or_path, status_code=307, status_message='REDIRECT',):
+def redirect(request, name_or_path, status_code=307, status_message='REDIRECT'):
+    utils._type_check(
+        (request, 'Handler'), (name_or_path, str), (status_code, int), (status_message, str),
+    )
     if not isinstance(request, SimpleHTTPRequestHandler): ## instance of Handler
-        try:
-            raise Exception( 'first argument of redirect must me request' )
-        except:
-            return _error_http500(request, 'first argument of redirect must me request', traceback.format_exc())
+        raise Exception( 'first argument of redirect must me request' )
     
     paths = request.localserver.urlpatterns
     for path in paths:
-        equal, _ = path.compare(name_or_path)
+        equal, _ = path.compare(request, name_or_path)
         if equal or (path.name == name_or_path):
             return Response(status_code=status_code, status_message=status_message, headers={
                     'Location': path.url
                 }, is_redirect=True
             )
-    try:
-        raise Exception( '%s is an invalid redirect name of path'%name_or_path )
-    except:
-        return _error_http500(request, '%s is an invalid redirect name of path'%name_or_path, traceback.format_exc())
+    raise Exception( '%s is an invalid redirect name or path'%name_or_path )
 
 
 ############### errors #############################
 
 def _error_http404(request):
-    if request.localserver.DEBUG:
-        return render(request, request.localserver.NOTFOUND404_TEMPLATE_PATH, context=request.localserver.NOTFOUND404_GET_CONTEXT(request), status_code=404, status_message='NotFound')
+    if settings.DEBUG:
+        return render(request, request.localserver.NOTFOUND404_TEMPLATE_PATH, ctx=request.localserver.NOTFOUND404_GET_CONTEXT(request), status_code=404, status_message='NotFound')
     else:
         return HttpResponse('<h2>(404) Not Found</h2>', status_code=404, status_message='NotFound')
     
 def _error_http500(request, error_message, stack_trace=''):
-    if request.localserver.DEBUG:
-        return render(request, request.localserver._ERROR_TEMPLATE_PATH, context={
+    if settings.DEBUG:
+        return render(request, request.localserver._ERROR_TEMPLATE_PATH, ctx={
             'title':'500 InternalError',
             'error_message' : '(500) InternalError',
-            'error_content' : error_message+'<br>%s' % stack_trace.replace('\n','<br>')
+            'error_content' : error_message+'<br><br>%s' % stack_trace.replace('\n','<br>')
         }, status_code=500, status_message='InternalError')
     else:
         return HttpResponse('<h2>(500) Internal Error</h2>', status_code=500, status_message='InternalError')
