@@ -6,10 +6,10 @@ from .urls import _url_as_list
 from . import utils
 
 try:
-    import settings
+    from server_data import settings
 except ImportError:
     utils.create_settings_file()
-    import settings
+    from server_data import settings
 
 MEDIA_FILE_FORMAT = {
     ## format : mime/type , is_binary
@@ -96,8 +96,28 @@ def _handle_static_url_localhost(request):
 def _handle_static_url_developer(request):
     return _static_handler(request, settings.STATIC_DIR)
 
+from .auth import authenticate, login, logout
+
 def _handle_admin_page(request):
-    return _render(request, 'localhost-admin.html', request.localserver.LOCALHOST_TEMPLATE_DIR, context={'title':'admin'})
+    if request.method == 'GET':
+        return _render(request, 'localhost-admin.html', request.localserver.LOCALHOST_TEMPLATE_DIR, 
+            context={'title':'admin'}
+        )
+    elif request.method == 'POST':
+        username = request.POST.get('username', '')
+        password = request.POST.get('password', '')
+
+        error_message = 'Authentication Failed!'
+        error_template = '''\
+        <div class="card" style="margin-left:3%;margin-right:3%; padding-top:10px; border-color:rgb(189, 4, 4)">
+                <p style="text-align: center; color:rgb(206, 64, 64); font-size:110%">{0}</p>
+            </div>
+        ''' .format ( error_message )
+
+        return _render(request, 'localhost-admin.html', request.localserver.LOCALHOST_TEMPLATE_DIR, 
+            context={'title':'admin', 'username':username, 'error_message': error_template }
+        )
+
 
 class Response:
     def __init__(self, status_code=200, status_message='OK', headers = {'Content-type':'text/html'}, data=bytes('','UTF-8'), is_redirect=False):
@@ -208,6 +228,7 @@ def _render(request, file_name, template_path, context=dict(), status_code=200, 
             context.update( request.localserver.LOCALHOST_CTX )
             for key in context:
                 content = re.sub(r'{{\s*%s\s*}}'%key, context[key].replace('\\','/'), content)
+            content = re.sub(r'{{\s*[A-Za-z_][A-Za-z_0-9]*\s*}}', '', content) ## clear other replaces words
         return HttpResponse(content, status_code=status_code, status_message=status_message, headers = headers)
     else:
         raise Exception( '%s file does not exists'% file_path )

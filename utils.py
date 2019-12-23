@@ -14,10 +14,19 @@ def _type_check(*check_list):
 
 
 def create_settings_file():
-    if not os.path.exists( os.path.join(os.getcwd(), 'settings.py') ):
+    settings_path = os.path.join(os.getcwd(), 'server_data', 'settings.py')
+    
+    if not os.path.exists(settings_path  ):
+        if not os.path.exists( os.path.dirname( settings_path ) ):
+            os.makedirs(os.path.dirname(  settings_path ))
+            init_path = os.path.join( os.path.dirname( settings_path ), '__init__.py' )
+            with open(init_path, 'w'):
+                pass
+
         with open( os.path.join( os.path.dirname(__file__), 'settings.txt' ) ,'r') as local_settings_file:
             settings_string = local_settings_file.read()
-        with open( os.path.join(os.getcwd(), 'settings.py'), 'w' ) as settings_file:
+
+        with open( settings_path, 'w' ) as settings_file:
             characters = ''
             for c in range(ord('a'), ord('z')+1): characters += chr(c)
             for c in range(ord('A'), ord('Z')+1): characters += chr(c)
@@ -31,7 +40,7 @@ def create_settings_file():
 
             settings_file.write(settings_string.replace("^^SECRET_KEY^^", secret_key))
 
-    import settings
+    from server_data import settings
     for must_have in ( 'DEBUG', 'SECRET_KEY', 'BASE_DIR', 'TEMPLATE_DIR', 'STATIC_DIR', 'STATIC_URL', 'DB_DIR'):
             if not hasattr(settings, must_have):
                 raise Exception('settings file must contain value %s', must_have)

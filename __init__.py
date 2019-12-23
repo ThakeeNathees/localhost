@@ -18,11 +18,10 @@ __all__ = [
     'render', 'redirect', 'media_response',
 ]
 
-try:
-    import settings
-except ImportError:
-    utils.create_settings_file()
-    import settings
+from . import __initialize
+__initialize.create_tables()
+
+from server_data import settings
     
 
 class Server:

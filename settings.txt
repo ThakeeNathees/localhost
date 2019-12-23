@@ -1,17 +1,21 @@
 
 import os
 
+
+## directory of server data
+SERVER_DATA_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(SERVER_DATA_DIR)
 
 # keep the secret key secret!
 SECRET_KEY = '^^SECRET_KEY^^'
 
 DEBUG = True
 
-TEMPLATE_DIR = os.path.join(BASE_DIR, 'templates')
+TEMPLATE_DIR = os.path.join(SERVER_DATA_DIR, 'templates')
 
-STATIC_DIR   = os.path.join(BASE_DIR, 'static')
+STATIC_DIR   = os.path.join(SERVER_DATA_DIR, 'static')
 STATIC_URL   = '/static/'
 
-DB_DIR       = os.path.join(BASE_DIR, 'db')
+DB_DIR       = os.path.join(SERVER_DATA_DIR, 'db')

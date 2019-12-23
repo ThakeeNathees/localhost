@@ -10,18 +10,22 @@
                 Localhost administration
             </div>
             <br>
+            
+            {{ error_message }}
+            
+
             <form action="" method="POST">
                 
                 <div style="padding:10px">
                     
                     <p style="margin-bottom: 0px;">Username</p>                
                     <div class="input-group mb-3">
-                        <input type="text"  name="username" class="form-control" aria-label="Default" aria-describedby="inputGroup-sizing-default">
+                        <input type="text"  name="username" class="form-control" aria-label="Default" aria-describedby="inputGroup-sizing-default" value={{username}}>
                     </div>
                     
                     <p style="margin-bottom: 0px;">Password</p>                
                     <div class="input-group mb-3">
-                        <input type="password"  name="password" class="form-control" aria-label="Default" aria-describedby="inputGroup-sizing-default">
+                        <input type="password"  name="password" class="form-control" aria-label="Default" aria-describedby="inputGroup-sizing-default" value={{password}}>
                     </div>
                     
                     <div class="input-group mb-3" style="left: 35%;">

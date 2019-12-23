@@ -1,11 +1,13 @@
 import sys, os, traceback
 
+from .db.table import Table, DoesNotExists
+
 try:
-    import settings
+    from server_data import settings
 except ImportError:
     from .utils import create_settings_file
     create_settings_file()
-    import settings
+    from server_data import settings
 
 try:
     from http.server import SimpleHTTPRequestHandler, HTTPServer
@@ -37,6 +39,16 @@ def handle(request):  ## for get and post methds
         request.GET     = dict()
         request.POST    = dict()
         request.COOKIES = SimpleCookie(request.headers.get('Cookie'))
+        request.user_id  = None
+
+        session_table   = Table.get_table('sessions', 'auth')
+        cookies = SimpleCookie(request.headers.get('Cookie'))
+        if 'session_id' in cookies.keys():
+            try:
+                session = session_table.get(session_id=cookies['session_id'])
+                request.user_id = session['user_id']
+            except DoesNotExists:
+                pass
 
         if request.path[-1]!='/':
             parsed_url  = urlparse.urlparse(request.path+'/')

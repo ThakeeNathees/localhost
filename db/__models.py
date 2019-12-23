@@ -3,10 +3,10 @@ import os, csv
 
 from .. import utils
 try:
-    import settings
+    from server_data import settings
 except ImportError:
     utils.create_settings_file()
-    import settings
+    from server_data import settings
 
 from .table import Table
 

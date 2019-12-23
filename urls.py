@@ -3,10 +3,10 @@
 ## as_list -> ['static'], remove all ['']
 from . import utils
 try:
-    import settings
+    from server_data import settings
 except ImportError:
     utils.create_settings_file()
-    import settings
+    from server_data import settings
 
 
 __all__ = [ 'Path' ]
