@@ -42,15 +42,19 @@ def handle(request):  ## for get and post methds
         request.user_id  = None
 
         session_table   = Table.get_table('sessions', 'auth')
-        cookies = SimpleCookie(request.headers.get('Cookie'))
-        if 'session_id' in cookies.keys():
+        if 'session_id' in  request.COOKIES :
+            print(request.path, ':' , request.COOKIES['session_id'])
+        else:
+            print(request.path, ':' ,'---')
+        
+        if 'session_id' in request.COOKIES.keys():
             try:
-                session = session_table.get(session_id=cookies['session_id'])
+                session = session_table.all.get(session_id=request.COOKIES['session_id'])
                 request.user_id = session['user_id']
             except DoesNotExists:
                 pass
 
-        if request.path[-1]!='/':
+        if request.path[-1] != '/':
             parsed_url  = urlparse.urlparse(request.path+'/')
         else :
             parsed_url  = urlparse.urlparse(request.path)
@@ -93,11 +97,15 @@ def handle(request):  ## for get and post methds
         
         request.send_response(resp.status_code, resp.status_message)
 
-        
-        ## set cookie, sessionid, csrftoken, ...
-        ## test_cookie = SimpleCookie()
-        ## test_cookie['test_cookie_3'] = 'this is a test cookie 3'
-        #request.send_header('Set-Cookie', test_cookie.output(header='', sep=''))
+        if hasattr(request, 'set_session_id'):
+            cookie = SimpleCookie()
+            cookie['session_id'] = request.set_session_id
+            cookie['session_id']['secure'] = False
+            cookie['session_id']['path'] = '/'
+            request.send_header("Set-Cookie", cookie.output(header='', sep=''))
+            
+
+
         for key in resp.headers:
             request.send_header(key, resp.headers[key])
         request.end_headers()

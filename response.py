@@ -11,6 +11,9 @@ except ImportError:
     utils.create_settings_file()
     from server_data import settings
 
+from . import auth
+from .db.table import Table, DoesNotExists
+
 MEDIA_FILE_FORMAT = {
     ## format : mime/type , is_binary
 
@@ -96,27 +99,49 @@ def _handle_static_url_localhost(request):
 def _handle_static_url_developer(request):
     return _static_handler(request, settings.STATIC_DIR)
 
-from .auth import authenticate, login, logout
-
+ 
 def _handle_admin_page(request):
+
+    error_template = '''\
+    <div class="card" style="margin-left:3%;margin-right:3%; padding-top:10px; border-color:rgb(189, 4, 4)">
+            <p style="text-align: center; color:rgb(206, 64, 64); font-size:110%">{0}</p>
+        </div>
+    '''
+    if request.user_id is not None:
+        user_table = Table.get_table('users', 'auth')
+
+        user = user_table.all.get(id=request.user_id)
+        if user['is_admin']:
+            pass ## TODO:
+        else: 
+            error_message = 'You are authenticated as %s but not autherized to access this page.'%user['username']
+            return _render(request, 'localhost-admin.html', request.localserver.LOCALHOST_TEMPLATE_DIR, 
+            context={'title':'admin', 'error_message': error_template.format(error_message) }
+        )
+
+
     if request.method == 'GET':
         return _render(request, 'localhost-admin.html', request.localserver.LOCALHOST_TEMPLATE_DIR, 
             context={'title':'admin'}
         )
     elif request.method == 'POST':
+
         username = request.POST.get('username', '')
         password = request.POST.get('password', '')
 
-        error_message = 'Authentication Failed!'
-        error_template = '''\
-        <div class="card" style="margin-left:3%;margin-right:3%; padding-top:10px; border-color:rgb(189, 4, 4)">
-                <p style="text-align: center; color:rgb(206, 64, 64); font-size:110%">{0}</p>
-            </div>
-        ''' .format ( error_message )
-
-        return _render(request, 'localhost-admin.html', request.localserver.LOCALHOST_TEMPLATE_DIR, 
-            context={'title':'admin', 'username':username, 'error_message': error_template }
-        )
+        ## authenticate
+        user_id = auth.authenticate(username, password)
+        if user_id is None:
+            error_message = 'Authentication failed! check your username and password.'
+            return _render(request, 'localhost-admin.html', request.localserver.LOCALHOST_TEMPLATE_DIR, 
+                context={'title':'admin', 'username':username, 'error_message': error_template.format(error_message) }
+            )
+        else:
+            auth.login(request, user_id)
+            return redirect(request, '/')
+            return _render(request, 'localhost-admin.html', request.localserver.LOCALHOST_TEMPLATE_DIR, 
+                context={'title':'admin', 'username': user_id }
+            )
 
 
 class Response:
@@ -227,7 +252,9 @@ def _render(request, file_name, template_path, context=dict(), status_code=200, 
                 context['title'] = 'localhost'
             context.update( request.localserver.LOCALHOST_CTX )
             for key in context:
-                content = re.sub(r'{{\s*%s\s*}}'%key, context[key].replace('\\','/'), content)
+                if type(context[key]) == str:
+                    context[key] = context[key].replace('\\','/')
+                content = re.sub(r'{{\s*%s\s*}}'%key, str(context[key]), content)
             content = re.sub(r'{{\s*[A-Za-z_][A-Za-z_0-9]*\s*}}', '', content) ## clear other replaces words
         return HttpResponse(content, status_code=status_code, status_message=status_message, headers = headers)
     else:

@@ -29,10 +29,8 @@ def authenticate(username, password):
         return None
 
 def login(request, user_id):
-    session_id = md5( str(user_id) + str(int(time())).encode('utf-8')).hexdigest()
-    cookie = SimpleCookie()
-    cookie['session_id'] = session_id
-    request.send_header('Set-Cookie', cookie.output(header='', sep=''))
+    session_id = md5( ( str(user_id) + str(int(time())) ).encode('utf-8')  ).hexdigest()
+    request.set_session_id = session_id
     request.user_id = user_id
 
 def logout(request):
@@ -40,4 +38,7 @@ def logout(request):
         return
     session_table = Table.get_table('session_id', 'auth')
     session_table.remove(session_table.all.get(user_id = request.user_id))
+    cookie = SimpleCookie()
+    cookie['session_id'] = ''
+    request.send_header('Set-Cookie', cookie.output(header='', sep=''))
     request.user_id = None
