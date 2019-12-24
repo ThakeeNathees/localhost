@@ -8,8 +8,9 @@ from .response import (
     HttpResponse, JsonResponse, Http404,
     render, _get_404_context, redirect, media_response,
     _handle_static_url_localhost, _handle_static_url_developer,
-    _handle_admin_page,
 )
+from . import auth
+from .auth import admin_page
 from .urls import Path
 from . import utils
 
@@ -20,6 +21,7 @@ __all__ = [
 
 from . import __initialize
 __initialize.create_tables()
+__initialize.create_dirs()
 
 from server_data import settings
     
@@ -60,7 +62,7 @@ class Server:
         self.urlpatterns += [
             Path(settings.STATIC_URL, _handle_static_url_developer),
             Path(self.LOCALHOST_STATIC_URL, _handle_static_url_localhost),
-            Path(self.LOCALHOST_ADMIN_URL, _handle_admin_page),
+            Path(self.LOCALHOST_ADMIN_URL, admin_page._handle_admin_home_page),
         ]
 
     def run(self):

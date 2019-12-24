@@ -1,3 +1,5 @@
+import os
+
 from . import utils
 try:
     from server_data import settings
@@ -21,7 +23,7 @@ TABLES  = dict(
         
         sessions = dict(
             columns    = dict(
-                session_id = [int, None],
+                session_id = [str, None], ## hexdigit
                 user_id    = [int, None]
             )
         ),
@@ -36,4 +38,10 @@ def create_tables():
             if not Table.exists(table_name, app_name):
                 table = Table.create(table_name, app_name, **columns)
                 table.save()
+
+def create_dirs():
+    if not os.path.exists( settings.TEMPLATE_DIR ):
+        os.mekedirs(settings.TEMPLATE_DIR)
+    if not os.path.exists( settings.STATIC_DIR ):
+        os.makedirs(settings.STATIC_DIR)
 

@@ -1,6 +1,9 @@
 import sys, os, traceback
+import datetime
 
+from . import auth
 from .db.table import Table, DoesNotExists
+
 
 try:
     from server_data import settings
@@ -42,14 +45,11 @@ def handle(request):  ## for get and post methds
         request.user_id  = None
 
         session_table   = Table.get_table('sessions', 'auth')
-        if 'session_id' in  request.COOKIES :
-            print(request.path, ':' , request.COOKIES['session_id'])
-        else:
-            print(request.path, ':' ,'---')
+        user_table   = Table.get_table('users', 'auth')
         
         if 'session_id' in request.COOKIES.keys():
             try:
-                session = session_table.all.get(session_id=request.COOKIES['session_id'])
+                session = session_table.all.get(session_id=request.COOKIES['session_id'].value)
                 request.user_id = session['user_id']
             except DoesNotExists:
                 pass
@@ -102,7 +102,17 @@ def handle(request):  ## for get and post methds
             cookie['session_id'] = request.set_session_id
             cookie['session_id']['secure'] = False
             cookie['session_id']['path'] = '/'
+            expires = datetime.datetime.utcnow() + datetime.timedelta(days=auth.SESSION_COOKIE_EXPIRES_DAYS)
+            cookie['session_id']['expires'] = expires.strftime("%a, %d %b %Y %H:%M:%S GMT")
+
             request.send_header("Set-Cookie", cookie.output(header='', sep=''))
+            try:
+                session = session_table.all.get(user_id=request.user_id)
+                session['session_id'] = request.set_session_id
+                session_table.save()
+            except DoesNotExists:
+                session_table.insert(session_id=request.set_session_id, user_id=request.user_id)
+                session_table.save()
             
 
 
@@ -129,5 +139,4 @@ class Handler(SimpleHTTPRequestHandler):
     
 
     def log_message(self, format, *args):
-        return
         super().log_message(format, *args)

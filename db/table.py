@@ -1,5 +1,6 @@
 
 import csv, os
+from hashlib import md5
 
 from .. import utils
 try:
@@ -9,6 +10,8 @@ except ImportError:
     from server_data import settings
 
 class DoesNotExists(Exception):
+    pass
+class AlreadyExists(Exception):
     pass
 
 class QuerySet:
@@ -109,12 +112,23 @@ class Table:
         self.collumns   = dict(id=[int,1])
         pass ## use Table.create() method
 
+    def __repr__(self):
+        return str(self.all)
     def __str__(self):
         return str(self.all)
         
     @staticmethod
     def exists(table_name, app_name):
         return os.path.exists( os.path.join(settings.DB_DIR, app_name, table_name+'.csv') )
+
+    @staticmethod
+    def create_admin(username, password): ## TODO: move this to some place else
+        user_table = Table.get_table('users', 'auth')
+        if not user_table.all.exists(username=username):
+            user_table.insert(username=username, password=md5(password.encode('utf-8')  ).hexdigest(), is_admin=True)
+            user_table.save()
+        else:
+            raise AlreadyExists()
     
     @staticmethod
     def create(table_name, app_name, **kwargs):

@@ -100,50 +100,6 @@ def _handle_static_url_developer(request):
     return _static_handler(request, settings.STATIC_DIR)
 
  
-def _handle_admin_page(request):
-
-    error_template = '''\
-    <div class="card" style="margin-left:3%;margin-right:3%; padding-top:10px; border-color:rgb(189, 4, 4)">
-            <p style="text-align: center; color:rgb(206, 64, 64); font-size:110%">{0}</p>
-        </div>
-    '''
-    if request.user_id is not None:
-        user_table = Table.get_table('users', 'auth')
-
-        user = user_table.all.get(id=request.user_id)
-        if user['is_admin']:
-            pass ## TODO:
-        else: 
-            error_message = 'You are authenticated as %s but not autherized to access this page.'%user['username']
-            return _render(request, 'localhost-admin.html', request.localserver.LOCALHOST_TEMPLATE_DIR, 
-            context={'title':'admin', 'error_message': error_template.format(error_message) }
-        )
-
-
-    if request.method == 'GET':
-        return _render(request, 'localhost-admin.html', request.localserver.LOCALHOST_TEMPLATE_DIR, 
-            context={'title':'admin'}
-        )
-    elif request.method == 'POST':
-
-        username = request.POST.get('username', '')
-        password = request.POST.get('password', '')
-
-        ## authenticate
-        user_id = auth.authenticate(username, password)
-        if user_id is None:
-            error_message = 'Authentication failed! check your username and password.'
-            return _render(request, 'localhost-admin.html', request.localserver.LOCALHOST_TEMPLATE_DIR, 
-                context={'title':'admin', 'username':username, 'error_message': error_template.format(error_message) }
-            )
-        else:
-            auth.login(request, user_id)
-            return redirect(request, '/')
-            return _render(request, 'localhost-admin.html', request.localserver.LOCALHOST_TEMPLATE_DIR, 
-                context={'title':'admin', 'username': user_id }
-            )
-
-
 class Response:
     def __init__(self, status_code=200, status_message='OK', headers = {'Content-type':'text/html'}, data=bytes('','UTF-8'), is_redirect=False):
         self.is_redirect        = is_redirect

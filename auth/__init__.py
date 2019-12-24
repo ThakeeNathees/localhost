@@ -3,7 +3,7 @@ from time import time
 import os, sys
 
 
-from .db.table import Table, DoesNotExists
+from ..db.table import Table, DoesNotExists
 
 try:
     from server_data import settings
@@ -18,6 +18,8 @@ try:
 except ImportError:
     print('Error: localhost only supprts for python3')
     sys.exit(1)
+
+SESSION_COOKIE_EXPIRES_DAYS = 30
 
 ## return user id if user exists else None
 def authenticate(username, password):
@@ -36,8 +38,9 @@ def login(request, user_id):
 def logout(request):
     if request.user_id is None:
         return
-    session_table = Table.get_table('session_id', 'auth')
+    session_table = Table.get_table('sessions', 'auth')
     session_table.remove(session_table.all.get(user_id = request.user_id))
+    session_table.save()
     cookie = SimpleCookie()
     cookie['session_id'] = ''
     request.send_header('Set-Cookie', cookie.output(header='', sep=''))

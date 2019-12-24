@@ -9,11 +9,13 @@ except ImportError:
     from server_data import settings
 
 
-__all__ = [ 'Path' ]
+__all__ = [ 'path' ]
 
 def _url_as_list(url):
     return list(filter(lambda elem: elem!='', url.split('/')))
 
+def path(url, handler, name=''): ## for a django like interface
+    return Path(url, handler, name=name)
 
 class Path:
     def __init__(self, url, handler, name=''):
@@ -33,7 +35,7 @@ class Path:
         self.handler    = handler
         self.name       = name
 
-    def compare(self, request, url): ## /some/path = /some/path/
+    def compare(self, request, url): ## /some/path/<arg1>/ = /some/path/2
 
         args = []
         
