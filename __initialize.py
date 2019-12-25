@@ -41,7 +41,7 @@ def create_tables():
 
 def create_dirs():
     if not os.path.exists( settings.TEMPLATE_DIR ):
-        os.mekedirs(settings.TEMPLATE_DIR)
+        os.makedirs(settings.TEMPLATE_DIR)
     if not os.path.exists( settings.STATIC_DIR ):
         os.makedirs(settings.STATIC_DIR)
 

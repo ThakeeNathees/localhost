@@ -28,10 +28,18 @@
                         <input type="password"  name="password" class="form-control" aria-label="Default" aria-describedby="inputGroup-sizing-default" value={{password}}>
                     </div>
                     
+                    <style>
+                        .btn-outline-success{
+                            color:rgb(61, 179, 133);background-color:transparent;background-image:none;border-color:rgb(61, 179, 133)
+                        }
+                        .btn-outline-success:hover{
+                            color:#fff;background-color:rgb(61, 179, 133);border-color:rgb(61, 179, 133)
+                        }
+                    </style>
+
                     <div class="input-group mb-3" style="left: 35%;">
                         <div class="input-group">
-                            <!-- todo: sytle="color:#3db385; border-color:3db385" and change hover color background to 3db385 and color to white -->
-                            <input class="btn btn-outline-secondary" type="submit"></button>
+                            <input class="btn btn-outline-success" type="submit" value="Submit"></button>
                         </div>
                     </div>
                 </div>

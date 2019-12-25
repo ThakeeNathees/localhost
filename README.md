@@ -10,9 +10,9 @@ from localhost import Server
 server = Server(port=8000)
 server.run()
 ```
-now the server will run at `http://www.localhost:8000/` and you'll see the localhost default home page (for the admin page -> localhost:8000/admin)
+now the server will run at `http://www.localhost:8000/` and you'll see the localhost default home page (for the admin page : localhost:8000/admin)
 
-## Screenshot
+## screenshot
 <p align="center">
 <img src="screenshot.jpg" width="1000" align="middle">
 </p>
@@ -78,7 +78,7 @@ create your home-page template (home.html) in your TEMPLATE_DIR
  <!-- close </body> tag, bootstrap javascript files -->
 {{ html_base_end }}
 ```
-now replace the HttpResponse with render
+now render the template
 ```python
 from localhost.response import render
 def home_view(request):

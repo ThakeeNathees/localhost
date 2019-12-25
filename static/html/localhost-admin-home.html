@@ -1,0 +1,52 @@
+{{ html_base_begin }}
+
+<header class="site-header">
+    <nav class="navbar navbar-expand-md navbar-dark bg-steel fixed-top">
+        <div class="container">
+            <a class="navbar-brand mr-4" href="">&nbsp localhost administration</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="navbarToggle" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarToggle">
+                <div class="navbar-nav mr-auto">
+                </div>
+                <!-- Navbar Right Side -->
+                <div class="navbar-nav">
+                    <a class="nav-item nav-link" href="">Change Password</a>
+                    <a class="nav-item nav-link" href="{% url 'admin-logout' %}">Logout</a>
+                </div>
+            </div>
+            
+        </div>
+    </nav>
+</header>
+
+<div class="container" style="margin-top: 5%; margin-left:2%">
+    <p style="color:rgb(128, 128, 128); font-size:180%">Site administration</p>
+
+    <!-- all registered apps/tables -->
+
+    <!-- auth  -->
+    <div style="background-color: rgb(115, 150, 175); padding:2px; padding-left:5px; margin-top:40px">
+        <p style="color: white; margin:2px; font-size:110%"> <b> Authentication</b></p>
+    </div>
+    <a href="" style="text-decoration:none; color:rgb(91, 124, 148); margin:2px; font-size:120%; padding-left: 15px;"><b>Users</b></a href="">
+        <a href="" style="text-decoration:none; color:rgb(91, 124, 148); font-size:120%; float:right; padding-right:20px">Add</a>
+
+        <hr style="margin:2px">
+
+    <a href="" style="text-decoration:none; color:rgb(91, 124, 148); margin:2px; font-size:120%; padding-left: 15px;"><b>Sessions</b></a href="">
+        <a href="" style="text-decoration:none; color:rgb(91, 124, 148); font-size:120%; float:right; padding-right:20px">Add</a>    
+
+    <hr style="margin:2px">
+
+    <div style="background-color: rgb(115, 150, 175); padding:2px; padding-left:5px; margin-top:40px">
+        <p style="color: white; margin:2px; font-size:110%"> <b> Other Registered App</b></p>
+    </div>
+
+</div>
+
+
+
+{{ html_base_end }}

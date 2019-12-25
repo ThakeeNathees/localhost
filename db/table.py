@@ -13,6 +13,8 @@ class DoesNotExists(Exception):
     pass
 class AlreadyExists(Exception):
     pass
+class TypeMisMatch(Exception):
+    pass
 
 class QuerySet:
     def __init__(self):
@@ -161,7 +163,10 @@ class Table:
             
             for key in self.collumns.keys(): ## type convert
                 if self.collumns[key][1] is not None:
-                    self.collumns[key][1] = self.collumns[key][0]( self.collumns[key][1] )
+                    if self.collumns[key][1] == 'False' and self.collumns[key][0] == bool:
+                        self.collumns[key][1] = False 
+                    else:
+                        self.collumns[key][1] = self.collumns[key][0]( self.collumns[key][1] )
                 
         return self
 
@@ -186,13 +191,19 @@ class Table:
                         if dtypes[key] == 'str'     : dtypes[key] = str
 
                         if defaults[key] != '':
-                            defaults[key] = dtypes[key](defaults[key])
+                            if defaults[key] == 'False' and dtypes[key] == bool:
+                                defaults[key] = False ## bool('False') = True
+                            else:
+                                defaults[key] = dtypes[key](defaults[key])
                         else:
                             defaults[key] = None
                         self.collumns[key] = [ dtypes[key], defaults[key] ]
                 else:
                     for key in self.collumns.keys():
-                        row[key] = self.collumns[key][0]( row[key] )
+                        if self.collumns[key][0] == bool and row[key] == 'False':
+                            row[key] = False
+                        else:
+                            row[key] = self.collumns[key][0]( row[key] )
                     self.collumns['id'][1] = row['id'] + 1
                     self.all.append(row)
                     
@@ -234,6 +245,9 @@ class Table:
             db_writer.writerow(defaults)
 
             for row in self.all:
+                for key in dtypes.keys():
+                    if type(row[key]) != self.collumns[key][0]:
+                        raise TypeMisMatch()
                 db_writer.writerow(row)
 
         

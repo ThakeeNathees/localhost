@@ -141,11 +141,11 @@ def render(request, file_name, ctx=dict(), status_code=200, status_message='OK',
     return _render(request, file_name, settings.TEMPLATE_DIR, ctx, status_code, status_message, headers)
 
 ## used for local host rendering
-def _render(request, file_name, template_path, context=dict(), status_code=200, status_message='OK', headers = {'Content-type':'text/html'}):
+def _render(request, file_name, template_path, ctx=dict(), status_code=200, status_message='OK', headers = {'Content-type':'text/html'}):
     file_path = os.path.join(template_path, file_name)
     
     ## validate context keys
-    for key in context.keys():
+    for key in ctx.keys():
         if re.match('^[A-Za-z_][A-Za-z_0-9]*$', key) is None:
             raise Exception('invalid key name for render context : "%s"'%key)
 
@@ -204,14 +204,34 @@ def _render(request, file_name, template_path, context=dict(), status_code=200, 
 
 
             #######################################################################################
-            if 'title' not in context.keys():
-                context['title'] = 'localhost'
-            context.update( request.localserver.LOCALHOST_CTX )
-            for key in context:
-                if type(context[key]) == str:
-                    context[key] = context[key].replace('\\','/')
-                content = re.sub(r'{{\s*%s\s*}}'%key, str(context[key]), content)
+            if 'title' not in ctx.keys():
+                ctx['title'] = 'localhost'
+            ctx.update( request.localserver.LOCALHOST_CTX )
+            for key in ctx:
+                if type(ctx[key]) == str:
+                    ctx[key] = ctx[key].replace('\\','/')
+                content = re.sub(r'{{\s*%s\s*}}'%key, str(ctx[key]), content)
             content = re.sub(r'{{\s*[A-Za-z_][A-Za-z_0-9]*\s*}}', '', content) ## clear other replaces words
+
+            ## for {% url 'str-for-reverse' %}
+            subs = dict()
+            for match in re.finditer(r"{%\s*url\s+['\"][A-Za-z_][A-Za-z_0-9-]*['\"]\s*%}", content):
+                _match = re.search(r"['\"][A-Za-z_][A-Za-z_0-9-]*['\"]", content[match.start() : match.end()] )
+                if _match is None:
+                    print(content[match.start() : match.end()])
+                    raise Exception('invalid')
+                else:
+                    name = content[match.start() : match.end()][ _match.start(): _match.end() ] ## with quotes
+                
+                if name[0] != name[-1]:
+                    raise Exception('Quote character mismatch : %s'% name)
+                name = name[1:-1]
+                url = reverse(request, name)
+                subs[name] = url
+            for name in subs.keys():
+                content = re.sub(r"{%%\s*url\s+['\"]%s['\"]\s*%%}"%name, subs[name], content )
+
+
         return HttpResponse(content, status_code=status_code, status_message=status_message, headers = headers)
     else:
         raise Exception( '%s file does not exists'% file_path )
@@ -228,7 +248,7 @@ def reverse(request, name, *args):
     utils._type_check(
         (request, 'Handler'), (name, str)
     )
-    for path in request.localserver.paths:
+    for path in request.localserver.urlpatterns:
         if path.name == name:
             url = path.url
             for arg in args:

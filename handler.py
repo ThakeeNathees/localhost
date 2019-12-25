@@ -31,7 +31,7 @@ from .urls import _url_as_list
 def _home_page_handler(request):
     with open( os.path.join(request.localserver.LOCALHOST_STATIC_DIR, 'html/ghost-image.html'), 'r') as img:
         ghost_image = img.read()
-    return _render(request, 'localhost-home.html', request.localserver.LOCALHOST_TEMPLATE_DIR, context={
+    return _render(request, 'localhost-home.html', request.localserver.LOCALHOST_TEMPLATE_DIR, ctx={
         'ghost_image' : ghost_image
     })
 
