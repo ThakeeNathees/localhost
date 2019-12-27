@@ -244,6 +244,7 @@ except ImportError:
     print('Error: localhost only supprts for python3')
     sys.exit(1)
 
+## return url has a / at last
 def reverse(request, name, *args):
     utils._type_check(
         (request, 'Handler'), (name, str)
@@ -251,8 +252,9 @@ def reverse(request, name, *args):
     for path in request.localserver.urlpatterns:
         if path.name == name:
             url = path.url
-            for arg in args:
+            for arg in args: ## TODO: BUG! re.sub replace all occurences
                 url = re.sub(r'/<\s*[A-Za-z_][A-Za-z_0-9]*\s*>/', arg, url)
+            if path.url[-1] != '/' : return path.url + '/'
             return path.url
     raise Exception( '%s is an invalid redirect name to reverse'%name )
 

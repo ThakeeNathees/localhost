@@ -1,14 +1,13 @@
 
 import os
 
-
 ## directory of server data
 SERVER_DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+## Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(SERVER_DATA_DIR)
 
-# keep the secret key secret!
+## keep the secret key secret!
 SECRET_KEY = '^^SECRET_KEY^^'
 
 DEBUG = True
@@ -19,3 +18,10 @@ STATIC_DIR   = os.path.join(SERVER_DATA_DIR, 'static')
 STATIC_URL   = '/static/'
 
 DB_DIR       = os.path.join(SERVER_DATA_DIR, 'db')
+
+## set your name or path for custom login path
+## LOGIN_PATH = 'admin-login' 
+
+## set these values for your custom 404 page
+## NOTFOUND404_TEMPLATE_PATH = 'html/localhost-error.html'
+## NOTFOUND404_GET_CONTEXT   = lambda request : return { 'context_name' : 'context_value' }

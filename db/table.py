@@ -92,7 +92,10 @@ class QuerySet:
             raise Exception('multiple Query objects found for get - use filter')
         return ret[0]
 
+
 class Table:
+
+    ## TODO: impl refresh table
 
     ## dict of tables, name : 'appname/tablename'
     TABLES = dict()

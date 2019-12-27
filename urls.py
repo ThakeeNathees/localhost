@@ -8,6 +8,7 @@ except ImportError:
     utils.create_settings_file()
     from server_data import settings
 
+import re
 
 __all__ = [ 'path' ]
 
@@ -46,17 +47,18 @@ class Path:
                 return True, args
             if url_list[0] == _url_as_list(settings.STATIC_URL)[0] and self.url == settings.STATIC_URL:
                 return True, args
-                
-
+          
+        list_self  = _url_as_list(self.url)
+        list_other = _url_as_list(url)
         if self.url == url :
             return True, args
-        if len(_url_as_list(self.url)) != len(_url_as_list(url)):
+        if len(list_self) != len(list_other):
             return False, args
-        for i in range(len(_url_as_list(url)) ):
-            if _url_as_list(self.url)[i][0] == '<' and _url_as_list(self.url)[i][-1] == '>':
-                args.append(_url_as_list(url)[i])
+        for i in range(len(list_other)):
+            if list_self[i][0] == '<' and list_self[i][-1] == '>':
+                args.append(list_other[i])
                 continue
-            if _url_as_list(self.url)[i] != _url_as_list(url)[i]:
+            if re.match('^'+list_self[i]+'$', list_other[i]) is None:
                 return False, args
         return True, args
     

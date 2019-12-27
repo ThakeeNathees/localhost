@@ -40,6 +40,7 @@ server.run()
 
 ## render html
 Instead of HttpResponse you can return a rendered html page.
+
 importing localhost create a directory called server_data
 ```
 server_data

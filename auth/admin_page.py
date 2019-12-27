@@ -14,8 +14,52 @@ def _is_user_admin(user_id):
 def _handle_admin_home_page(request):
     if not _is_user_admin(request.user_id):
         return redirect(request, 'admin-login')
+    
+    ## render page
+    title_template = '''\
+    <div style="background-color: rgb(115, 150, 175); padding:2px; padding-left:5px; margin-top:40px">
+        <p style="color: white; margin:2px; font-size:110%"> <b>{0}</b></p>
+    </div>
+    '''
+    table_template = '''\
+    <a href="{0}" style="text-decoration:none; color:rgb(91, 124, 148); margin:2px; font-size:120%; padding-left: 15px;"><b>{1}</b></a>
+    <a href="{2}" style="text-decoration:none; color:rgb(91, 124, 148); font-size:120%; float:right; padding-right:20px">Add</a>
+    <hr style="margin:2px">
+    '''
 
-    return _render(request, 'localhost-admin-home.html', request.localserver.LOCALHOST_TEMPLATE_DIR )
+    admin_body = ''
+    ## register auth
+    admin_body += title_template.format('Authentication') 
+    admin_body += table_template.format(reverse(request, 'admin-home')+'auth/users/','Users','') 
+    admin_body += table_template.format(reverse(request, 'admin-home')+'auth/sessions', 'Sessions', '')
+
+    ## TODO: add other registered apps
+    ## TODO: after createing forms add 'add' url
+
+    return _render(request, 'localhost-admin-home.html', request.localserver.LOCALHOST_TEMPLATE_DIR, {'admin_body': admin_body} )
+
+def _handle_admin_table_page(request, app_name, table_name):
+    if not _is_user_admin(request.user_id):
+        return redirect(request, 'admin-login')
+
+    table = Table.get_table(table_name, app_name)
+    table_head = ''
+    table_body = ''
+
+    for col_name in table.collumns.keys():
+        table_head += '<th scope="col">%s</th>\n'% col_name
+    
+    for row in table.all:
+        table_body += '<tr>'
+        for key in row.keys():
+            if key == 'id': table_body += '<th scope="row">%s</th>\n' % row[key]
+            else: table_body += '<td>%s</td>\n' % row[key]
+        table_body += '</tr>'
+
+    return _render(request, 'localhost-admin-table.html', request.localserver.LOCALHOST_TEMPLATE_DIR, {
+        'table_head' : table_head, 
+        'table_body' : table_body
+    })
 
 def _handle_admin_logout_page(request):
     logout(request)

@@ -62,9 +62,12 @@ class Server:
         self.urlpatterns += [
             Path(settings.STATIC_URL, _handle_static_url_developer),
             Path(self.LOCALHOST_STATIC_URL, _handle_static_url_localhost),
+
+            ## admin pages
             Path(self.LOCALHOST_ADMIN_URL, admin_page._handle_admin_home_page, name='admin-home'),
             Path(self.LOCALHOST_ADMIN_URL+'login/', admin_page._handle_admin_login_page, name='admin-login'),
             Path(self.LOCALHOST_ADMIN_URL+'logout/', admin_page._handle_admin_logout_page, name='admin-logout'),
+            Path(self.LOCALHOST_ADMIN_URL+'<app_name>/<table_name>', admin_page._handle_admin_table_page),
         ]
 
     def run(self):

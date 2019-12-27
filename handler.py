@@ -83,7 +83,11 @@ def handle(request):  ## for get and post methds
                         except:
                             resp = _error_http500(request, 'function: "%s"  return type must be an instance of Response'%(path.handler.__name__), traceback.format_exc())
                 except Http404:
-                    if settings.DEBUG:   resp = render(request, request.localserver.NOTFOUND404_TEMPLATE_PATH, ctx=request.localserver.NOTFOUND404_GET_CONTEXT(request), status_code=404, status_message='NotFound')
+                    if settings.DEBUG:
+                        NOTFOUND404_TEMPLATE_PATH = settings.__dict__['NOTFOUND404_TEMPLATE_PATH'] if hasattr(settings, 'NOTFOUND404_TEMPLATE_PATH') else request.localserver.NOTFOUND404_TEMPLATE_PATH
+                        NOTFOUND404_GET_CONTEXT   = settings.__dict__['NOTFOUND404_GET_CONTEXT'] if hasattr(settings, 'NOTFOUND404_GET_CONTEXT') else request.localserver.NOTFOUND404_GET_CONTEXT
+                        
+                        resp = render(request, NOTFOUND404_TEMPLATE_PATH, ctx=NOTFOUND404_GET_CONTEXT(request), status_code=404, status_message='NotFound')
                     else:   resp = HttpResponse('<h2>(404) Not Found</h2>', status_code=404, status_message='NotFound')
                 except Exception as err:
                     resp = _error_http500(request, str(err), traceback.format_exc())
