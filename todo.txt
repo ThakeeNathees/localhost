@@ -1,0 +1,6 @@
+## consider localserver.urlpatterns -> utls.py.urlpatterns or something
+
+## move login required to auth __init__.py
+
+## create forms
+## make admin page

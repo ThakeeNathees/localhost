@@ -2,12 +2,10 @@
 import csv, os
 from hashlib import md5
 
-from .. import utils
 try:
     from server_data import settings
 except ImportError:
-    utils.create_settings_file()
-    from server_data import settings
+    raise Exception('did you initialize with "python localhost init [path]" ?')
 
 class DoesNotExists(Exception):
     pass
@@ -180,7 +178,7 @@ class Table:
         with open(os.path.join(settings.DB_DIR, self.table_path), 'r') as table_file:
             db_reader = csv.DictReader(table_file,  lineterminator='\n')
             line_num = 0
-            dtypes = None; defaults = None
+            dtypes = dict(); defaults = dict()
             for row in db_reader:
                 if line_num == 0: ## data type
                     dtypes = row

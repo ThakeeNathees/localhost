@@ -2,14 +2,50 @@
 A no setup lightweight python web framework -- for localhost
 
 ## install
-clone this repository to your python import path and run the below hello world script 
+clone this repository to your python import path and run the below command 
 
-```git clone https://github.com/ThakeeNathees/localhost.git```
+```
+git clone https://github.com/ThakeeNathees/localhost.git
+python localhost init .
+python main.py
+```
+the command `python localhost init .` creates a python file main.py as below and a directory called server_data
 ```python
 from localhost import Server
 server = Server(port=8000)
 server.run()
 ```
+```
+server_data
+  +-- __init__.py
+  +-- settings.py
+  +-- db/
+  |   +-- auth
+  |         +-- users.csv
+  |         +-- sessions.csv
+  |
+  +-- static/
+  |    +-- css/
+  |    |  +-- bootstrap.min.css
+  |    |  +-- main.css
+  |    +-- html/
+  |    +-- js/
+  |    |   +-- bootstrap.min.js
+  |    |   +-- jquery-3.2.1.slim.min.js
+  |    |   +-- popper.min.js
+  |    +-- image/
+  |
+  +-- templates/
+       +-- localhost/
+            +-- admin/
+            |     +-- home.html
+            |     +-- login.html
+            |     +-- logout.html
+            +-- base.html
+            +-- home.html
+            +-- error.html
+```
+
 now the server will run at `http://www.localhost:8000/` and you'll see the localhost default home page (for the admin page : localhost:8000/admin)
 
 ## screenshot
@@ -39,20 +75,7 @@ server.run()
 ```
 
 ## render html
-Instead of HttpResponse you can return a rendered html page.
-
-importing localhost create a directory called server_data
-```
-server_data
-  +-- __init__.py
-  +-- settings.py
-  +-- db/
-  |   +-- auth
-  |         +-- users.csv
-  |         +-- sessions.csv
-  +-- static/
-  +-- templates/
-```
+Instead of HttpResponse you can return a rendered html page.<br>
 
 in the settings.py the default path for the templates are specified as  
 ```TEMPLATE_DIR = os.path.join(SERVER_DATA_DIR, 'templates')```

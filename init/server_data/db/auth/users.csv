@@ -1,0 +1,4 @@
+id,username,password,is_admin
+int,str,str,bool
+2,,,False
+1,admin,21232f297a57a5a743894a0e4a801fc3,True

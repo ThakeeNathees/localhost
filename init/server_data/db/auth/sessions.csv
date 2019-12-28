@@ -1,0 +1,4 @@
+id,session_id,user_id
+int,str,int
+1,,
+

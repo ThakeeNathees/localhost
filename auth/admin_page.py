@@ -1,8 +1,8 @@
 
 from . import login, logout, authenticate
-from ..db.table import Table
+from ..db import Table
 
-from ..response import render, redirect, _render, reverse
+from ..response import render, redirect, reverse
 
 def _is_user_admin(user_id):
     if user_id is None:
@@ -36,7 +36,7 @@ def _handle_admin_home_page(request):
     ## TODO: add other registered apps
     ## TODO: after createing forms add 'add' url
 
-    return _render(request, 'localhost-admin-home.html', request.localserver.LOCALHOST_TEMPLATE_DIR, {'admin_body': admin_body} )
+    return render(request, 'localhost/admin/home.html', {'admin_body': admin_body} )
 
 def _handle_admin_table_page(request, app_name, table_name):
     if not _is_user_admin(request.user_id):
@@ -56,14 +56,14 @@ def _handle_admin_table_page(request, app_name, table_name):
             else: table_body += '<td>%s</td>\n' % row[key]
         table_body += '</tr>'
 
-    return _render(request, 'localhost-admin-table.html', request.localserver.LOCALHOST_TEMPLATE_DIR, {
+    return render(request, 'localhost/admin/table.html', {
         'table_head' : table_head, 
         'table_body' : table_body
     })
 
 def _handle_admin_logout_page(request):
     logout(request)
-    return _render(request, 'localhost-base.html',  request.localserver.LOCALHOST_TEMPLATE_DIR, ctx={
+    return render(request, 'localhost/base.html', ctx={
             'content_body': '''<p style="color:rgb(128, 128, 128); font-size:180%">Logged Out</p>
             <p>Thanks for spending some quality time with the Web site today.<p>
             <a href={0} style="text-decoration:none; color:#5e89a8;">Login again</a>
@@ -85,13 +85,13 @@ def _handle_admin_login_page(request):
             return redirect(request, 'admin-home')
         else: 
             error_message = 'You are authenticated as "%s" but not autherized to access this page.'%user['username']
-            return _render(request, 'localhost-admin-login.html', request.localserver.LOCALHOST_TEMPLATE_DIR, 
+            return render(request, 'localhost/admin/login.html', 
             ctx={'title':'admin', 'error_message': error_template.format(error_message) }
         )
 
 
     if request.method == 'GET':
-        return _render(request, 'localhost-admin-login.html', request.localserver.LOCALHOST_TEMPLATE_DIR, 
+        return render(request, 'localhost/admin/login.html', 
             ctx={'title':'admin'}
         )
     elif request.method == 'POST':
@@ -103,7 +103,7 @@ def _handle_admin_login_page(request):
         user_id = authenticate(username, password)
         if not _is_user_admin(user_id):
             error_message = 'Authentication failed! check your username and password.'
-            return _render(request, 'localhost-admin-login.html', request.localserver.LOCALHOST_TEMPLATE_DIR, 
+            return render(request, 'localhost/admin/login.html', 
                 ctx={'title':'admin', 'username':username, 'error_message': error_template.format(error_message) }
             )
         else:

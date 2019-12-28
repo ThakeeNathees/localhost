@@ -8,11 +8,10 @@ from . import utils
 try:
     from server_data import settings
 except ImportError:
-    utils.create_settings_file()
-    from server_data import settings
+    raise Exception('did you initialize with "python localhost init [path]" ?')
 
 from . import auth
-from .db.table import Table, DoesNotExists
+from .db import Table, DoesNotExists
 
 MEDIA_FILE_FORMAT = {
     ## format : mime/type , is_binary
@@ -66,18 +65,17 @@ def _get_404_context(request):
     ctx['title'] = '404 NotFound'
     paths = ''
     for path in request.localserver.urlpatterns:
-        if not path.url.startswith( settings.STATIC_URL ) and not path.url.startswith( request.localserver.LOCALHOST_STATIC_URL ) : ## url = '/static/'
+        if not path.url.startswith( settings.STATIC_URL ) and not path.url.startswith( settings.STATIC_URL ) : ## url = '/static/'
             paths += '<li>'+ path.url.replace('<', '&lt;').replace('>', '&gt;')  +'</li>'
     paths += '<li>'+ settings.STATIC_URL +'&lt;file_path&gt;</li>'
     ctx['error_content'] = '<p>supported url patterns:<ol>%s<ol></p>'%paths 
     return ctx
 
 
-def _static_handler(request, static_dir, status_code=200, status_message='OK'):
-    file_path = os.path.join(static_dir,  '/'.join(_url_as_list(request.path)[1:]  ) ) ## '/static/image.jpg/ -> [  static, image.jpg ]
-    
-    
+def _static_handler(request, status_code=200, status_message='OK'):
+    file_path = os.path.join(settings.STATIC_DIR,  '/'.join(_url_as_list(request.path)[1:]  ) ) ## '/static/image.jpg/ -> [  static, image.jpg ]
     file_format = file_path.split('.')[-1].lower().replace('/', '') ## path/to/media.format/
+
     if os.path.exists(file_path) and os.path.isfile(file_path):
         if  file_format in MEDIA_FILE_FORMAT.keys():
             mime_type, binary = MEDIA_FILE_FORMAT[file_format]
@@ -93,11 +91,6 @@ def _static_handler(request, static_dir, status_code=200, status_message='OK'):
     else:
         raise Http404()
 
-
-def _handle_static_url_localhost(request):
-    return _static_handler(request, request.localserver.LOCALHOST_STATIC_DIR)
-def _handle_static_url_developer(request):
-    return _static_handler(request, settings.STATIC_DIR)
 
  
 class Response:
@@ -131,19 +124,17 @@ def media_response(request, file_name, status_code=200, status_message='OK'):
         (request, 'Handler'), (file_name, str), 
         (status_code, int),  (status_message, str),
     )
-    return _static_handler(request, settings.STATIC_DIR, status_code, status_message)
+    return _static_handler(request, status_code, status_message)
 
+## used for local host rendering
 def render(request, file_name, ctx=dict(), status_code=200, status_message='OK', headers = {'Content-type':'text/html'}):
     utils._type_check(
         (request, 'Handler'), (file_name, str), (ctx, dict),
         (status_code, int),  (status_message, str), (headers, dict)
     )
-    return _render(request, file_name, settings.TEMPLATE_DIR, ctx, status_code, status_message, headers)
 
-## used for local host rendering
-def _render(request, file_name, template_path, ctx=dict(), status_code=200, status_message='OK', headers = {'Content-type':'text/html'}):
-    file_path = os.path.join(template_path, file_name)
-    
+    file_path = os.path.join(settings.TEMPLATE_DIR, file_name)
+
     ## validate context keys
     for key in ctx.keys():
         if re.match('^[A-Za-z_][A-Za-z_0-9]*$', key) is None:
@@ -178,35 +169,21 @@ def _render(request, file_name, template_path, ctx=dict(), status_code=200, stat
 
 
                 ## replace begin
-                developer_begin_template_path = os.path.join(settings.TEMPLATE_DIR, request.localserver.BASE_HTML_BEGIN_PATH)
-                localhost_begin_template_path = os.path.join(request.localserver.LOCALHOST_TEMPLATE_DIR, request.localserver.BASE_HTML_BEGIN_PATH)
-                if os.path.exists(developer_begin_template_path) and os.path.isfile(developer_begin_template_path):
-                    with open(developer_begin_template_path, 'r') as file:
-                        content = re.sub(reg_ex_begin, file.read(), content)
-                elif os.path.exists(localhost_begin_template_path) and os.path.isfile(localhost_begin_template_path):
-                    with open(localhost_begin_template_path, 'r') as file:
-                        content = re.sub(reg_ex_begin, file.read(), content)
-                else:
-                    raise Exception( 'file %s dosent exists'%request.localserver.BASE_HTML_BEGIN_PATH  )
+                BASE_HTML_BEGIN_TEMPLATE_NAME = settings.__dict__['BASE_HTML_BEGIN_TEMPLATE_NAME'] if hasattr(settings, 'BASE_HTML_BEGIN_TEMPLATE_NAME') else 'localhost/base-begin.html'
+                with open(os.path.join(settings.TEMPLATE_DIR, BASE_HTML_BEGIN_TEMPLATE_NAME), 'r') as file:
+                    content = re.sub(reg_ex_begin, file.read(), content)
 
 
                 ## replace end
-                developer_end_template_path = os.path.join(settings.TEMPLATE_DIR, request.localserver.BASE_HTML_END_PATH)
-                localhost_end_template_path = os.path.join(request.localserver.LOCALHOST_TEMPLATE_DIR, request.localserver.BASE_HTML_END_PATH)
-                if os.path.exists(developer_end_template_path) and os.path.isfile(developer_end_template_path):
-                    with open(developer_end_template_path, 'r') as file:
-                        content = re.sub(reg_ex_end, file.read(), content)
-                elif os.path.exists(localhost_end_template_path) and os.path.isfile(localhost_end_template_path):
-                    with open(localhost_end_template_path, 'r') as file:
-                        content = re.sub(reg_ex_end, file.read(), content)
-                else:
-                    raise Exception( 'file %s dosent exists'%request.localserver.BASE_HTML_END_PATH )
+                BASE_HTML_END_TEMPLATE_NAME = settings.__dict__['BASE_HTML_END_TEMPLATE_NAME'] if hasattr(settings, 'BASE_HTML_END_TEMPLATE_NAME') else 'localhost/base-end.html'
+                with open(os.path.join(settings.TEMPLATE_DIR, BASE_HTML_END_TEMPLATE_NAME), 'r') as file:
+                    content = re.sub(reg_ex_end, file.read(), content)
 
 
             #######################################################################################
             if 'title' not in ctx.keys():
                 ctx['title'] = 'localhost'
-            ctx.update( request.localserver.LOCALHOST_CTX )
+            ctx.update({ 'static_url' : settings.STATIC_URL})
             for key in ctx:
                 if type(ctx[key]) == str:
                     ctx[key] = ctx[key].replace('\\','/')
@@ -280,13 +257,16 @@ def redirect(request, name_or_path, status_code=307, status_message='REDIRECT'):
 
 def _error_http404(request):
     if settings.DEBUG:
-        return render(request, request.localserver.NOTFOUND404_TEMPLATE_PATH, ctx=request.localserver.NOTFOUND404_GET_CONTEXT(request), status_code=404, status_message='NotFound')
+        NOTFOUND404_TEMPLATE_NAME = settings.__dict__['NOTFOUND404_TEMPLATE_NAME'] if hasattr(settings, 'NOTFOUND404_TEMPLATE_NAME') else 'localhost/error.html'
+        NOTFOUND404_GET_CONTEXT = settings.__dict__['NOTFOUND404_GET_CONTEXT'] if hasattr(settings, 'NOTFOUND404_GET_CONTEXT') else _get_404_context
+        return render(request, NOTFOUND404_TEMPLATE_NAME, ctx=NOTFOUND404_GET_CONTEXT(request), status_code=404, status_message='NotFound')
     else:
         return HttpResponse('<h2>(404) Not Found</h2>', status_code=404, status_message='NotFound')
     
 def _error_http500(request, error_message, stack_trace=''):
     if settings.DEBUG:
-        return render(request, request.localserver._ERROR_TEMPLATE_PATH, ctx={
+        ERROR_TEMPLATE_NAME = settings.__dict__['ERROR_TEMPLATE_NAME'] if hasattr(settings, 'ERROR_TEMPLATE_NAME') else 'localhost/error.html'
+        return render(request, ERROR_TEMPLATE_NAME, ctx={
             'title':'500 InternalError',
             'error_message' : '(500) InternalError',
             'error_content' : error_message+'<br><br>%s' % stack_trace.replace('\n','<br>')

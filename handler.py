@@ -2,15 +2,13 @@ import sys, os, traceback
 import datetime
 
 from . import auth
-from .db.table import Table, DoesNotExists
+from .db import Table, DoesNotExists
 
 
 try:
     from server_data import settings
 except ImportError:
-    from .utils import create_settings_file
-    create_settings_file()
-    from server_data import settings
+    raise Exception('did you initialize with "python localhost init [path]" ?')
 
 try:
     from http.server import SimpleHTTPRequestHandler, HTTPServer
@@ -24,14 +22,14 @@ from urllib.parse import parse_qs
 
 from .response import (
     Response, HttpResponse, render, MEDIA_FILE_FORMAT,
-    _error_http404, _error_http500, _render, Http404
+    _error_http404, _error_http500, Http404
 )
 from .urls import _url_as_list
 
 def _home_page_handler(request):
-    with open( os.path.join(request.localserver.LOCALHOST_STATIC_DIR, 'html/ghost-image.html'), 'r') as img:
+    with open( os.path.join(settings.STATIC_DIR, 'html/ghost.html'), 'r') as img:
         ghost_image = img.read()
-    return _render(request, 'localhost-home.html', request.localserver.LOCALHOST_TEMPLATE_DIR, ctx={
+    return render(request, 'localhost/home.html', ctx={
         'ghost_image' : ghost_image
     })
 
@@ -45,7 +43,7 @@ def handle(request):  ## for get and post methds
         request.user_id  = None
 
         session_table   = Table.get_table('sessions', 'auth')
-        user_table   = Table.get_table('users', 'auth')
+        #user_table   = Table.get_table('users', 'auth')
         
         if 'session_id' in request.COOKIES.keys():
             try:
@@ -84,10 +82,7 @@ def handle(request):  ## for get and post methds
                             resp = _error_http500(request, 'function: "%s"  return type must be an instance of Response'%(path.handler.__name__), traceback.format_exc())
                 except Http404:
                     if settings.DEBUG:
-                        NOTFOUND404_TEMPLATE_PATH = settings.__dict__['NOTFOUND404_TEMPLATE_PATH'] if hasattr(settings, 'NOTFOUND404_TEMPLATE_PATH') else request.localserver.NOTFOUND404_TEMPLATE_PATH
-                        NOTFOUND404_GET_CONTEXT   = settings.__dict__['NOTFOUND404_GET_CONTEXT'] if hasattr(settings, 'NOTFOUND404_GET_CONTEXT') else request.localserver.NOTFOUND404_GET_CONTEXT
-                        
-                        resp = render(request, NOTFOUND404_TEMPLATE_PATH, ctx=NOTFOUND404_GET_CONTEXT(request), status_code=404, status_message='NotFound')
+                        resp = _error_http404(request)
                     else:   resp = HttpResponse('<h2>(404) Not Found</h2>', status_code=404, status_message='NotFound')
                 except Exception as err:
                     resp = _error_http500(request, str(err), traceback.format_exc())
@@ -95,7 +90,9 @@ def handle(request):  ## for get and post methds
                 ###############################                
                 break
         else:
-            resp = _error_http404(request)
+            if settings.DEBUG:
+                resp = _error_http404(request)
+            else:   resp = HttpResponse('<h2>(404) Not Found</h2>', status_code=404, status_message='NotFound')
         
         
         

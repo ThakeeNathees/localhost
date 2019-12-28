@@ -5,8 +5,7 @@ from . import utils
 try:
     from server_data import settings
 except ImportError:
-    utils.create_settings_file()
-    from server_data import settings
+    raise Exception('did you initialize with "python localhost init [path]" ?')
 
 import re
 
@@ -43,8 +42,6 @@ class Path:
         ## for static paths
         url_list = _url_as_list(url) 
         if len(url_list) > 0:
-            if url_list[0] == _url_as_list(request.localserver.LOCALHOST_STATIC_URL)[0] and self.url == request.localserver.LOCALHOST_STATIC_URL:
-                return True, args
             if url_list[0] == _url_as_list(settings.STATIC_URL)[0] and self.url == settings.STATIC_URL:
                 return True, args
           

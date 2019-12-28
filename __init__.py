@@ -7,23 +7,17 @@ from .handler import (
 from .response import (
     HttpResponse, JsonResponse, Http404,
     render, _get_404_context, redirect, media_response,
-    _handle_static_url_localhost, _handle_static_url_developer,
+    _static_handler
 )
 from . import auth
 from .auth import admin_page
 from .urls import Path
 from . import utils
 
-__all__ = [
-    'Server', 'Path', 'HttpResponse', 'JsonResponse', 'Http404',
-    'render', 'redirect', 'media_response',
-]
-
-from . import __initialize
-__initialize.create_tables()
-__initialize.create_dirs()
-
-from server_data import settings
+try:
+    from server_data import settings
+except ImportError:
+    raise Exception('did you initialize with "python localhost init [path]" ?')
     
 
 class Server:
@@ -35,21 +29,6 @@ class Server:
 
         self.port                   = port
         self.urlpatterns            = []
-        
-        self.LOCALHOST_STATIC_DIR    = os.path.join(os.path.dirname(__file__), 'static')  ## private static dir,
-        self.LOCALHOST_STATIC_URL    = '/_static/'
-        self.LOCALHOST_ADMIN_URL     = '/admin/'
-        self.LOCALHOST_TEMPLATE_DIR  = os.path.join(self.LOCALHOST_STATIC_DIR, 'html')
-        self.LOCALHOST_CTX           = {
-            '_static_url'     : self.LOCALHOST_STATIC_URL,
-            'static_url'      : settings.STATIC_URL,
-            ## in response.py html_base_begin, html_base_end
-        }
-        self._ERROR_TEMPLATE_PATH          = os.path.join(self.LOCALHOST_STATIC_DIR, 'html/localhost-error.html')
-        self.NOTFOUND404_TEMPLATE_PATH     = self._ERROR_TEMPLATE_PATH
-        self.NOTFOUND404_GET_CONTEXT       = _get_404_context
-        self.BASE_HTML_BEGIN_PATH          = 'localhost-base-begin.html'
-        self.BASE_HTML_END_PATH            = 'localhost-base-end.html'
 
         self._handler_class                 = Handler
         self._handler_class.localserver     = self
@@ -58,17 +37,23 @@ class Server:
     def add_default_paths(self): ## urls must ends with /, path is file_path
         if len(self.urlpatterns) == 0 and settings.DEBUG:
             self.urlpatterns.append( Path('', _home_page_handler ) )
-        ## TODO: developer has to add admin page    
+        
         self.urlpatterns += [
-            Path(settings.STATIC_URL, _handle_static_url_developer),
-            Path(self.LOCALHOST_STATIC_URL, _handle_static_url_localhost),
-
-            ## admin pages
-            Path(self.LOCALHOST_ADMIN_URL, admin_page._handle_admin_home_page, name='admin-home'),
-            Path(self.LOCALHOST_ADMIN_URL+'login/', admin_page._handle_admin_login_page, name='admin-login'),
-            Path(self.LOCALHOST_ADMIN_URL+'logout/', admin_page._handle_admin_logout_page, name='admin-logout'),
-            Path(self.LOCALHOST_ADMIN_URL+'<app_name>/<table_name>', admin_page._handle_admin_table_page),
+            Path(settings.STATIC_URL, _static_handler),
         ]
+        ## admin pages
+        USE_ADMIN_PAGE = settings.__dict__['USE_ADMIN_PAGE'] if hasattr(settings, 'USE_ADMIN_PAGE') else True 
+        if USE_ADMIN_PAGE:
+            ADMIN_URL = settings.__dict__['ADMIN_ULR'] if hasattr(settings, 'ADMIN_URL') else '/admin/'
+
+            self.urlpatterns += [
+                Path(ADMIN_URL, admin_page._handle_admin_home_page, name='admin-home'),
+                Path(ADMIN_URL+'login/', admin_page._handle_admin_login_page, name='admin-login'),
+                Path(ADMIN_URL+'logout/', admin_page._handle_admin_logout_page, name='admin-logout'),
+                Path(ADMIN_URL+'<app_name>/<table_name>', admin_page._handle_admin_table_page),
+            ]
+                
+
 
     def run(self):
         self.add_default_paths()

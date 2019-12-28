@@ -3,14 +3,12 @@ from time import time
 import os, sys
 
 
-from ..db.table import Table, DoesNotExists
+from ..db import Table, DoesNotExists
 
 try:
     from server_data import settings
 except ImportError:
-    from .utils import create_settings_file
-    create_settings_file()
-    from server_data import settings
+   raise Exception('did you initialize with "python localhost init [path]" ?')
 
 try:
     from http.server import SimpleHTTPRequestHandler, HTTPServer

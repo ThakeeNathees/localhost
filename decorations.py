@@ -1,10 +1,12 @@
 
 ## TODO: move login path to settings.py
 ## also 404 path
-from server_data import settings
-LOGIN_PATH = 'admin-login'
-if hasattr(settings, 'LOGIN_PATH'):
-    LOGIN_PATH = settings.__dict__['LOGIN_PATH']
+try:
+    from server_data import settings
+except ImportError:
+    raise Exception('did you initialize with "python localhost init [path]" ?')
+
+LOGIN_PATH = settings.__dict__['LOGIN_PATH'] if hasattr(settings, 'LOGIN_PATH') else 'admin-login'
 
 from .response import redirect
 
